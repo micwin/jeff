@@ -15,4 +15,15 @@ sass:
   sass_dir: assets/css
   style: compressed
 exclude:
+  - .bundle
+  - Gemfile
+  - Gemfile.lock
   - vendor
+  - work
+  - dist
+  - tmp
+  - scripts
+  - src
+  - tests.d
+  - doc
+  - README.md
