@@ -86,17 +86,24 @@ func runAsk(ctx *commandContext, opts askOptions) error {
 	tmpFile.Close()
 	defer os.Remove(tmpPath)
 
+	workingDir, err := os.Getwd()
+	if err != nil {
+		return fmt.Errorf("resolve working directory: %w", err)
+	}
+	dirPrefixedQuestion := fmt.Sprintf("You are operating inside %s. %s", workingDir, opts.question)
+
 	cmdArgs := []string{
 		"--sandbox", "danger-full-access",
 		"--search",
 		"exec",
 		"--skip-git-repo-check",
 		"--output-last-message", tmpPath,
-		"resume", sessionID, opts.question,
+		"resume", sessionID, dirPrefixedQuestion,
 	}
 
 	var stdoutBuf, stderrBuf strings.Builder
 	cmd := exec.CommandContext(ctxWithTimeout, codexBinary, cmdArgs...)
+	cmd.Dir = workingDir
 	cmd.Stdout = &stdoutBuf
 	cmd.Stderr = &stderrBuf
 	if err := cmd.Run(); err != nil {

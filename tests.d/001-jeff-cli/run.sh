@@ -37,12 +37,22 @@ fi
 
 "$JEFF_BIN" --config "$CONFIG_DIR" init --session stub-session --codex-binary "$CODEX_STUB" >/dev/null
 
+repo_pwd=$(pwd)
+
 ask_plain=$("$JEFF_BIN" --config "$CONFIG_DIR" ask 'Test question?')
-assert_eq "Answer: Test question?" "$ask_plain" "ask emits plain answer"
+expected_plain="Answer: You are operating inside $repo_pwd. Test question?"
+assert_eq "$expected_plain" "$ask_plain" "ask emits plain answer with dir context"
 
 ask_tokens=$("$JEFF_BIN" --config "$CONFIG_DIR" ask --show-token-cost 'Another question?')
-if [[ "$ask_tokens" != $'Answer: Another question?\nToken: '* ]]; then
-	printf 'FAIL: ask token flag missing expected prefix\n%s\n' "$ask_tokens" >&2
+tokens_answer=$(printf '%s\n' "$ask_tokens" | head -n 1)
+tokens_usage=$(printf '%s\n' "$ask_tokens" | tail -n +2)
+expected_answer="Answer: You are operating inside $repo_pwd. Another question?"
+if [[ "$tokens_answer" != "$expected_answer" ]]; then
+	printf 'FAIL: token answer line mismatch\nexpected: %s\nactual: %s\n' "$expected_answer" "$tokens_answer" >&2
+	exit 1
+fi
+if [[ "$tokens_usage" != Token:* ]]; then
+	printf 'FAIL: token usage line missing\n%s\n' "$tokens_usage" >&2
 	exit 1
 fi
 if ! grep -q 'Token: tokens used' <<<"$ask_tokens"; then
@@ -52,11 +62,13 @@ fi
 echo "ok: ask shows token usage when requested"
 
 status_out=$("$JEFF_BIN" --status --config "$CONFIG_DIR" ask 'Status question?')
-if [[ "$status_out" != *$'\n\nAnswer: Status question?' ]]; then
+expected_answer_suffix=$'\n\n'
+expected_answer_suffix+="Answer: You are operating inside $repo_pwd. Status question?"
+if [[ "$status_out" != *"$expected_answer_suffix" ]]; then
 	printf 'FAIL: status output missing answer separation\n%s\n' "$status_out" >&2
 	exit 1
 fi
-meta="${status_out%$'\n\nAnswer: Status question?'}"
+meta="${status_out%$expected_answer_suffix}"
 check_meta_line() { local key=$1; grep -q "^$key: " <<<"$meta" || { printf 'FAIL: missing %s line\n' "$key"; exit 1; }; }
 check_meta_line "workdir"
 check_meta_line "model"
