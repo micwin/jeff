@@ -119,8 +119,8 @@ create_github_release() {
   else
     cat <<EOF
 GitHub CLI (gh) not found. Please create the release manually:
-  gh release create v$VERSION dist/jeff dist/jeff_${VERSION}_${arch}.deb \\
-      --title "Jeff v$VERSION" --notes-file doc/ghpages/releases/v$VERSION.md
+  gh release create v$RELEASE_VERSION dist/jeff dist/jeff_${RELEASE_VERSION}_${arch}.deb \\
+      --title "Jeff v$RELEASE_VERSION" --notes-file doc/ghpages/releases/v$RELEASE_VERSION.md
 After creating the release, re-run this script.
 EOF
     exit 1
