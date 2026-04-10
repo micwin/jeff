@@ -50,13 +50,17 @@ jobs:
           bundler-cache: true
           working-directory: doc/ghpages
 
-      - name: Build GitHub Pages artifact
-        run: bundle exec jekyll build -d ../../work/ghpages-site
-        working-directory: doc/ghpages
+      - name: Build GitHub Pages site
+        run: ./scripts/build-docs.sh
 
-      - name: Deploy GitHub Pages
-        uses: peaceiris/actions-gh-pages@v3
-        with:
-          github_token: ${{ secrets.GITHUB_TOKEN }}
-          publish_dir: work/ghpages-site
-          keep_files: false
+      - name: Prepare gh-pages branch
+        run: |
+          git fetch origin gh-pages || true
+          git checkout gh-pages || git checkout --orphan gh-pages
+          git rm -rf . >/dev/null 2>&1 || true
+          cp -R work/ghpages-site/. .
+          git add --all
+          git commit -m "Publish site for v${{ steps.version.outputs.version }}"
+
+      - name: Push gh-pages
+        run: git push origin gh-pages
