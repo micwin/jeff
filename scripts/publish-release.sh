@@ -90,12 +90,7 @@ verify_artifacts() {
 }
 
 push_release_branch() {
-  if step_done push-release; then
-    echo "[publish] release branch already pushed"
-    return
-  fi
   git push origin "$RELEASE_BRANCH"
-  mark_done push-release
 }
 
 verify_artifacts
