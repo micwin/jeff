@@ -2,8 +2,8 @@ title: Jeff CLI
 email: support@example.com
 description: >-
   Jeff is your friendly pal for CLI-based workflows.
-baseurl: ""
-url: ""
+baseurl: "/jeff"
+url: "https://micwin.github.io"
 theme: minima
 markdown: kramdown
 header_pages:
