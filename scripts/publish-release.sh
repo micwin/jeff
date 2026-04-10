@@ -9,19 +9,21 @@ REPO_ROOT=$(cd "$SCRIPT_DIR/.." && pwd)
 WORK_DIR="$REPO_ROOT/work"
 VERSION_FILE="$REPO_ROOT/src/jeff/internal/version/VERSION"
 
-if [ ! -f "$VERSION_FILE" ]; then
-  echo "Missing version file at $VERSION_FILE" >&2
-  exit 1
-fi
-
-VERSION=$(tr -d '\r' <"$VERSION_FILE" | head -n 1)
-RELEASE_BRANCH="release/v$VERSION"
-STATE_DIR="$WORK_DIR/release-$VERSION"
-mkdir -p "$STATE_DIR"
-
 current_branch() {
   git rev-parse --abbrev-ref HEAD
 }
+
+BRANCH=$(current_branch)
+if [[ $BRANCH =~ ^release/v(.+)$ ]]; then
+  RELEASE_VERSION="${BASH_REMATCH[1]}"
+else
+  echo "You must be on a release branch (release/vX.Y.Z) to publish." >&2
+  exit 1
+fi
+
+RELEASE_BRANCH="$BRANCH"
+STATE_DIR="$WORK_DIR/release-$RELEASE_VERSION"
+mkdir -p "$STATE_DIR"
 
 step_done() {
   [ -f "$STATE_DIR/publish-$1.done" ]
@@ -62,25 +64,25 @@ verify_artifacts() {
   fi
 
   bin_version=$("$BIN" version | tr -d '\r' | head -n 1)
-  if [ "$bin_version" != "$VERSION" ]; then
-    echo "Binary reports version $bin_version but expected $VERSION" >&2
+  if [ "$bin_version" != "$RELEASE_VERSION" ]; then
+    echo "Binary reports version $bin_version but expected $RELEASE_VERSION" >&2
     exit 1
   fi
 
   arch=$(dpkg --print-architecture 2>/dev/null || uname -m)
-  DEB="$DIST_DIR/jeff_${VERSION}_${arch}.deb"
+  DEB="$DIST_DIR/jeff_${RELEASE_VERSION}_${arch}.deb"
   if [ ! -f "$DEB" ]; then
     echo "Missing Debian package $DEB" >&2
     exit 1
   fi
   deb_version=$(dpkg-deb --info "$DEB" 2>/dev/null | awk '/Version:/ {print $2; exit}')
-  if [ "$deb_version" != "$VERSION" ]; then
-    echo "Debian package reports version $deb_version but expected $VERSION" >&2
+  if [ "$deb_version" != "$RELEASE_VERSION" ]; then
+    echo "Debian package reports version $deb_version but expected $RELEASE_VERSION" >&2
     exit 1
   fi
 
-  if ! grep -q "v$VERSION" "$REPO_ROOT/doc/ghpages/index.md"; then
-    echo "Latest release section in doc/ghpages/index.md does not mention v$VERSION" >&2
+  if ! grep -q "v$RELEASE_VERSION" "$REPO_ROOT/doc/ghpages/index.md"; then
+    echo "Latest release section in doc/ghpages/index.md does not mention v$RELEASE_VERSION" >&2
     exit 1
   fi
 
@@ -103,13 +105,13 @@ create_github_release() {
   fi
   DIST_DIR="$REPO_ROOT/dist"
   arch=$(dpkg --print-architecture 2>/dev/null || uname -m)
-  DEB="$DIST_DIR/jeff_${VERSION}_${arch}.deb"
+  DEB="$DIST_DIR/jeff_${RELEASE_VERSION}_${arch}.deb"
   BIN="$DIST_DIR/jeff"
 
   if command -v gh >/dev/null 2>&1; then
-    gh release create "v$VERSION" "$BIN#jeff" "$DEB#jeff_${VERSION}_${arch}.deb" \
-      --title "Jeff v$VERSION" \
-      --notes-file "$REPO_ROOT/doc/ghpages/releases/v$VERSION.md" || {
+    gh release create "v$RELEASE_VERSION" "$BIN#jeff" "$DEB#jeff_${RELEASE_VERSION}_${arch}.deb" \
+      --title "Jeff v$RELEASE_VERSION" \
+      --notes-file "$REPO_ROOT/doc/ghpages/releases/v$RELEASE_VERSION.md" || {
         echo "gh release create failed" >&2
         exit 1
       }
