@@ -1,7 +1,7 @@
-# itzb
+# Jeff
 
 ## Overview
-The itzb workspace hosts multi-language services focused on integration workflows and operational tooling. Modules live in `src/` under capability folders (e.g., `src/ingest`, `src/orchestrators`, `src/infra`). Build artifacts are produced via the scripts documented below and routed into `work/` (intermediates) and `dist/` (release outputs).
+Jeff is a CLI helper for developers: a collection of shell-friendly tools that add well-placed boosts to everyday workflows. Source lives under `src/`, build scripts under `scripts/`, and artifacts land in `dist/` (final binaries) or `work/` (intermediates).
 
 ## Key Components
 - **Multi-runtime services** — binaries, CLIs, or daemons written in Go, Rust, Python, etc.
@@ -21,7 +21,7 @@ doc/        # docs + mkdocs config and runbooks
 Smokey directories follow `tests.d/NNN-feature-case`, where `NNN` is a zero-padded ordinal (`000` reserved for init). Fixtures must remain inside each case directory; shared setup lives only in `tests.d/000-init` or `tests.d/env.preseed`.
 
 ## Getting Started
-1. Run `scripts/bootstrap-dev.sh` to install toolchains, sync Smokey, and configure the `itzb` vaultline store.
+1. Run `scripts/bootstrap-dev.sh` to install toolchains, sync Smokey, and configure the `jeff` vaultline store.
 2. Implement or update services under the relevant `src/<capability>` folder, keeping language-specific build files beside the code.
 3. Use `scripts/build.sh` for local builds, `scripts/release.sh` for version/tag flows, and `scripts/clean.sh` to reset the workspace.
 4. Update `RUNBOOK.md` if you change how any of the scripts operate.

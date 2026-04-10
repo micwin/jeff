@@ -1,0 +1,16 @@
+title: Jeff CLI
+email: support@example.com
+description: >-
+  Jeff is your friendly CLI-pal for Codex-assisted workflows.
+baseurl: ""
+url: ""
+theme: minima
+markdown: kramdown
+plugins:
+  - jekyll-feed
+  - jekyll-seo-tag
+sass:
+  sass_dir: assets/css
+  style: compressed
+exclude:
+  - vendor

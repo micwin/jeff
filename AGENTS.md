@@ -21,8 +21,9 @@ Review `README.md`, `DEVELOPER.md`, `RUNBOOK.md`, and the docs under `doc/` befo
 - Maintain explicit bootstrap files and script headers as described in `DEVELOPER.md`. Only add automation scaffolding that humans can maintain easily.
 - Keep edits minimal-invasive: do not reorganize files, rename directories, or delete human-authored prose unless asked. Link any new config/architecture content from the appropriate human docs.
 - When refactoring, isolate the change, state the reason in the commit message, and avoid bundling unrelated edits.
+- **Sudo commands:** The Codex harness mangles both the sudo password prompt and any typed password, so sudo cannot be executed from this session. When root access is required, spell out the exact commands so the user can run them in another terminal. Never run sudo yourself.
 
 ## Change Management & Security
-- Use Conventional Commits (same as humans) and include intent in the commit body. PRs must link their tracking issue, list manual/Smokey verification, and note any touches to `work/`, `dist/`, `tmp/`, or the `itzb` vaultline store.
-- Secrets live only in the vaultline store `itzb`. When a task requires credentials, instruct the user to place them via vaultline or `tmp/`; never invent `.env` files.
+- Use Conventional Commits (same as humans) and include intent in the commit body. PRs must link their tracking issue, list manual/Smokey verification, and note any touches to `work/`, `dist/`, `tmp/`, or the `jeff` vaultline store.
+- Secrets live only in the vaultline store `jeff`. When a task requires credentials, instruct the user to place them via vaultline or `tmp/`; never invent `.env` files.
 - Treat `tmp/` as a disposable transfer area. Delete any files you place there once the user confirms receipt, and never expose the contents elsewhere.

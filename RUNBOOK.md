@@ -1,9 +1,9 @@
 # RUNBOOK
 
-Operational procedures for itzb. Update this file whenever the release process, onboarding steps, or incident protocols change.
+Operational procedures for Jeff. Update this file whenever the release process, onboarding steps, or incident protocols change.
 
 ## 1. Onboarding
-1. Ensure access to the `itzb` vaultline store and run `vaultline store create itzb` if it does not exist locally.
+1. Ensure access to the `jeff` vaultline store and run `vaultline store create jeff` if it does not exist locally.
 2. Run `scripts/bootstrap-dev.sh` to install multi-language toolchains and sync Smokey.
 3. Verify `smokey --dir tests.d` executes the baseline suites (starting with `tests.d/000-*`). `[TODO] list expected baseline cases`
 4. Review `DEVELOPER.md` and AGENTS.md (if acting as an agent) before first commit.
@@ -23,7 +23,7 @@ Operational procedures for itzb. Update this file whenever the release process, 
 - **Postmortem:** Document findings in `doc/incidents/<date>.md` and link from README/DEVELOPER if process changes.
 
 ## 4. Secret Management
-- All secrets reside in the vaultline store `itzb`; use vaultline hooks to inject at runtime.
+- All secrets reside in the vaultline store `jeff`; use vaultline hooks to inject at runtime.
 - Rotate credentials per the ops calendar and update this section with the rotation cadence. `[TODO] add rotation frequency and owners]`
 - Never commit generated secrets or Smokey outputs containing sensitive data. Use `tmp/` for transient transfers and delete after confirmation.
 

@@ -8,6 +8,46 @@ REPO_ROOT=$(cd "$SCRIPT_DIR/.." && pwd)
 WORK_DIR="$REPO_ROOT/work"
 DIST_DIR="$REPO_ROOT/dist"
 VERSION_FILE="$REPO_ROOT/src/jeff/internal/version/VERSION"
+DO_COMPILE=1
+DO_DOCS=1
+DO_DEB=1
+DO_CLEAN=0
+
+if [ $# -gt 0 ]; then
+	DO_COMPILE=0
+	DO_DOCS=0
+	DO_DEB=0
+	while [ $# -gt 0 ]; do
+		case "$1" in
+            --clean)
+                DO_CLEAN=1
+                ;;
+			--compile)
+				DO_COMPILE=1
+				;;
+			--docs)
+				DO_DOCS=1
+				;;
+			--deb)
+				DO_DEB=1
+				;;
+			-h|--help)
+				cat <<EOF
+Usage: scripts/build.sh [--compile] [--docs] [--deb]
+Without flags, all sections run (compile, docs placeholder, deb package).
+Providing any flag limits execution to the selected sections.
+Use --clean to remove previous build artifacts (can be combined with other flags).
+EOF
+				exit 0
+				;;
+			*)
+				echo "Unknown option: $1" >&2
+				exit 1
+				;;
+		esac
+		shift
+	done
+fi
 
 need_cmd() {
 	if ! command -v "$1" >/dev/null 2>&1; then
@@ -18,6 +58,14 @@ need_cmd() {
 
 log() {
 	printf '%s\n' "$*"
+}
+
+clean_artifacts() {
+	log "==> Cleaning build artifacts"
+	rm -rf "$WORK_DIR/go-cache" "$WORK_DIR/go-tmp" "$WORK_DIR/jeff-deb-root"
+	if [ -d "$DIST_DIR" ]; then
+		rm -rf "$DIST_DIR"/*
+	fi
 }
 
 bump_version() {
@@ -45,26 +93,86 @@ patch=${patch:-0}
 }
 
 need_cmd go
-
-bump_version
-
 mkdir -p "$WORK_DIR/go-cache" "$WORK_DIR/go-tmp" "$DIST_DIR"
 
-GO_ENV="GOCACHE=$WORK_DIR/go-cache GOTMPDIR=$WORK_DIR/go-tmp"
+if [ "$DO_CLEAN" -eq 1 ]; then
+	clean_artifacts
+	if [ "$DO_COMPILE" -eq 0 ] && [ "$DO_DOCS" -eq 0 ] && [ "$DO_DEB" -eq 0 ]; then
+		log "Clean complete."
+		exit 0
+	fi
+fi
 
-log "==> Go tests"
-(cd "$REPO_ROOT/src/jeff" && env $GO_ENV go test ./...)
+run_compile() {
+	GO_ENV="GOCACHE=$WORK_DIR/go-cache GOTMPDIR=$WORK_DIR/go-tmp"
+	log "==> Go tests"
+	(cd "$REPO_ROOT/src/jeff" && env $GO_ENV go test ./...)
+	log "==> Go build"
+	(cd "$REPO_ROOT/src/jeff" && env $GO_ENV go build -o "$DIST_DIR/jeff" ./cmd/jeff)
+}
 
-log "==> Go build"
-(cd "$REPO_ROOT/src/jeff" && env $GO_ENV go build -o "$DIST_DIR/jeff" ./cmd/jeff)
-
-build_docs() {
-	if [ -d "$1" ]; then
- 	log "==> Documentation directory $1 detected (no build step yet)"
+build_docs_section() {
+	if [ -d "$REPO_ROOT/doc" ] || [ -d "$REPO_ROOT/site" ]; then
+		log "==> Docs placeholder"
+		log "    (no documentation build steps defined yet)"
+	else
+		log "==> Docs skipped (no doc directory)"
 	fi
 }
 
-build_docs "$REPO_ROOT/doc"
-build_docs "$REPO_ROOT/site"
+build_deb() {
+	if ! command -v dpkg-deb >/dev/null 2>&1; then
+		log "==> dpkg-deb not available; skipping deb build"
+		return
+	fi
+	version=$(tr -d '\r' <"$VERSION_FILE" | head -n 1)
+	if [ ! -x "$DIST_DIR/jeff" ]; then
+		log "==> jeff binary missing; running compile step for deb"
+		run_compile
+	fi
+	arch=${DEB_ARCH:-$(dpkg --print-architecture 2>/dev/null || uname -m)}
+	root="$WORK_DIR/jeff-deb-root"
+	rm -rf "$root"
+	mkdir -p "$root/DEBIAN" "$root/usr/local/bin"
+	cp "$DIST_DIR/jeff" "$root/usr/local/bin/jeff"
+	chmod 755 "$root/usr/local/bin/jeff"
+	cat >"$root/DEBIAN/control" <<EOF
+Package: jeff
+Version: $version
+Section: utils
+Priority: optional
+Architecture: $arch
+Maintainer: Unknown <unknown@example.com>
+Description: Jeff CLI assistant packaged for Debian-based systems.
+EOF
+	mkdir -p "$DIST_DIR"
+	output="$DIST_DIR/jeff_${version}_${arch}.deb"
+	log "==> Building deb package $output"
+	dpkg-deb --build "$root" "$output" >/dev/null
+}
+
+bump_version
+
+compile_ran=0
+if [ "$DO_COMPILE" -eq 1 ]; then
+	run_compile
+	compile_ran=1
+fi
+
+if [ "$DO_DOCS" -eq 1 ]; then
+	build_docs_section
+fi
+
+if [ "$DO_DEB" -eq 1 ]; then
+	if [ "$compile_ran" -eq 0 ]; then
+		if [ -x "$DIST_DIR/jeff" ]; then
+			log "==> Reusing existing jeff binary for deb packaging"
+		else
+			log "==> jeff binary missing; running compile step for deb"
+			run_compile
+		fi
+	fi
+	build_deb
+fi
 
 log "Build complete. Artifacts available in $DIST_DIR"
