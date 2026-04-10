@@ -2,7 +2,7 @@
 
 ## 1. Environment Setup
 1. Clone the repository and ensure you have Go, Rust, Python, and Node.js toolchains available (versions TBD). `[TODO] pin tool versions`
-2. Run `scripts/bootstrap-dev.sh` to install project-specific dependencies, sync Smokey, and configure the `itzb` vaultline store.
+2. Run `scripts/bootstrap-dev.sh` to install project-specific dependencies, sync Smokey, and configure the `jeff` vaultline store.
 3. Configure your shell to load vaultline secrets (see RUNBOOK.md) before invoking the build or dev commands. `[TODO] document exact vaultline env hooks`
 
 ## 2. Repository Conventions
