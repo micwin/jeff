@@ -6,6 +6,8 @@ baseurl: ""
 url: ""
 theme: minima
 markdown: kramdown
+header_pages:
+  - downloads.md
 plugins:
   - jekyll-feed
   - jekyll-seo-tag
