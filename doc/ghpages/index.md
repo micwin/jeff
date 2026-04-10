@@ -3,7 +3,7 @@ layout: home
 title: Jeff – Your Friendly CLI-pal
 ---
 
-Welcome to the Jeff CLI project! This site is rendered via GitHub Pages.
+Welcome to the Jeff CLI project! Jeff is your CLI helper with carefully placed boosts—focused on speeding up the shells you already know.
 
 ## Getting Started
 
