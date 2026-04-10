@@ -24,8 +24,8 @@ func newAskCmd() *cobra.Command {
 	var opts askOptions
 
 	cmd := &cobra.Command{
-		Use:   "ask <frage>",
-		Short: "Frage an Codex stellen",
+		Use:   "ask <question>",
+		Short: "Send a question to Codex",
 		Args:  cobra.MinimumNArgs(1),
 		RunE: func(cmd *cobra.Command, args []string) error {
 			ctx, err := commandContextFrom(cmd)
@@ -37,17 +37,17 @@ func newAskCmd() *cobra.Command {
 		},
 	}
 
-	cmd.Flags().StringVar(&opts.sessionOverride, "session", "", "Session-ID überschreiben")
-	cmd.Flags().StringVar(&opts.codexBinary, "codex-binary", "", "Pfad zur Codex-CLI überschreiben")
-	cmd.Flags().BoolVar(&opts.showTokens, "show-token-cost", false, "Tokenkosten zusätzlich ausgeben")
-	cmd.Flags().DurationVar(&opts.timeout, "timeout", 45*time.Second, "Zeitlimit für die Antwort")
+	cmd.Flags().StringVar(&opts.sessionOverride, "session", "", "Override the configured session ID")
+	cmd.Flags().StringVar(&opts.codexBinary, "codex-binary", "", "Override the Codex CLI path")
+	cmd.Flags().BoolVar(&opts.showTokens, "show-token-cost", false, "Print token usage after the answer")
+	cmd.Flags().DurationVar(&opts.timeout, "timeout", 45*time.Second, "Set a response timeout (default 45s)")
 
 	return cmd
 }
 
 func runAsk(ctx *commandContext, opts askOptions) error {
 	if opts.question == "" {
-		return errors.New("Frage fehlt – Beispiel: jeff ask \"Was ist das für ein Verzeichnis?\"")
+		return errors.New("missing question – e.g. jeff ask \"What is this directory?\"")
 	}
 
 	cfg, err := ctx.loadConfig()
@@ -64,7 +64,7 @@ func runAsk(ctx *commandContext, opts askOptions) error {
 		}
 	}
 	if sessionID == "" {
-		return errors.New("keine Session bekannt – bitte zuerst 'jeff init' ausführen")
+		return errors.New("no active session – run 'jeff init' first")
 	}
 
 	codexBinary := strings.TrimSpace(opts.codexBinary)
@@ -80,7 +80,7 @@ func runAsk(ctx *commandContext, opts askOptions) error {
 
 	tmpFile, err := os.CreateTemp("", "jeff-codex-response-*.txt")
 	if err != nil {
-		return fmt.Errorf("temp datei anlegen: %w", err)
+		return fmt.Errorf("create temp file: %w", err)
 	}
 	tmpPath := tmpFile.Name()
 	tmpFile.Close()
@@ -146,9 +146,9 @@ func formatCodexError(runErr error, stdout, stderr string) error {
 		msg = strings.TrimSpace(stdout)
 	}
 	if msg != "" {
-		return fmt.Errorf("codex client fehlgeschlagen: %w\n%s", runErr, msg)
+		return fmt.Errorf("codex client failed: %w\n%s", runErr, msg)
 	}
-	return fmt.Errorf("codex client fehlgeschlagen: %w", runErr)
+	return fmt.Errorf("codex client failed: %w", runErr)
 }
 
 func extractTokenUsage(output string) string {

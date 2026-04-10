@@ -23,7 +23,7 @@ func newInitCmd() *cobra.Command {
 
 	cmd := &cobra.Command{
 		Use:   "init",
-		Short: "Session-ID setzen oder letzte Session wiederverwenden",
+		Short: "Configure or reuse a Codex session ID",
 		RunE: func(cmd *cobra.Command, args []string) error {
 			ctx, err := commandContextFrom(cmd)
 			if err != nil {
@@ -33,9 +33,9 @@ func newInitCmd() *cobra.Command {
 		},
 	}
 
-	cmd.Flags().StringVar(&opts.session, "session", "", "Session-ID für Codex")
-	cmd.Flags().BoolVar(&opts.useLast, "last-session", false, "Letzte gespeicherte Session reaktivieren")
-	cmd.Flags().StringVar(&opts.codexBinary, "codex-binary", "", "Pfad zur Codex-CLI speichern")
+	cmd.Flags().StringVar(&opts.session, "session", "", "Explicit Codex session ID")
+	cmd.Flags().BoolVar(&opts.useLast, "last-session", false, "Reuse the latest saved session ID")
+	cmd.Flags().StringVar(&opts.codexBinary, "codex-binary", "", "Persist a custom Codex CLI path")
 
 	return cmd
 }
@@ -55,14 +55,14 @@ func runInit(ctx *commandContext, opts initOptions) error {
 
 	if opts.codexBinary != "" {
 		cfg.CodexBinary = strings.TrimSpace(opts.codexBinary)
-		fmt.Fprintf(ctx.stdout, "Codex-Binary gesetzt auf %s\n", cfg.CodexBinary)
+		fmt.Fprintf(ctx.stdout, "Codex binary set to %s\n", cfg.CodexBinary)
 	}
 
 	if err := ctx.saveConfig(cfg); err != nil {
 		return err
 	}
 
-	fmt.Fprintf(ctx.stdout, "Session %s gespeichert.\n", session)
+	fmt.Fprintf(ctx.stdout, "Session %s saved.\n", session)
 	return nil
 }
 
@@ -70,7 +70,7 @@ func determineSession(ctx *commandContext, cfg *config.Config, opts initOptions)
 	switch {
 	case opts.useLast:
 		if cfg.LastSession == "" {
-			return "", errors.New("keine letzte Session vorhanden – bitte --session angeben")
+			return "", errors.New("no previous session found – provide --session")
 		}
 		return cfg.LastSession, nil
 	case opts.session != "":
@@ -81,15 +81,15 @@ func determineSession(ctx *commandContext, cfg *config.Config, opts initOptions)
 }
 
 func promptForSession(r io.Reader, w io.Writer) (string, error) {
-	fmt.Fprint(w, "Session-ID eingeben: ")
+	fmt.Fprint(w, "Enter session ID: ")
 	reader := bufio.NewReader(r)
 	value, err := reader.ReadString('\n')
 	if err != nil && !errors.Is(err, io.EOF) {
-		return "", fmt.Errorf("eingabe lesen: %w", err)
+		return "", fmt.Errorf("read input: %w", err)
 	}
 	session := strings.TrimSpace(value)
 	if session == "" {
-		return "", errors.New("Session-ID darf nicht leer sein")
+		return "", errors.New("session ID must not be empty")
 	}
 	return session, nil
 }

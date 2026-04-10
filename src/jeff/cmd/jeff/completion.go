@@ -9,10 +9,10 @@ import (
 func newCompletionCmd(rootCmd *cobra.Command) *cobra.Command {
 	cmd := &cobra.Command{
 		Use:   "completion",
-		Short: "Shell-Completions über Cobra erzeugen",
-		Long: `Generiert Shell-Completion Skripte.
+		Short: "Generate shell completions via Cobra",
+		Long: `Generate shell completion scripts.
 
-Beispiele:
+Examples:
   jeff completion bash > /etc/bash_completion.d/jeff
   jeff completion zsh  > "${fpath[1]}/_jeff"`,
 	}
@@ -22,7 +22,7 @@ Beispiele:
 		s := shell
 		cmd.AddCommand(&cobra.Command{
 			Use:   s,
-			Short: fmt.Sprintf("%s-completion erzeugen", s),
+			Short: fmt.Sprintf("Generate %s completion", s),
 			RunE: func(cmd *cobra.Command, args []string) error {
 				return runCompletion(rootCmd, s, cmd)
 			},
@@ -41,6 +41,6 @@ func runCompletion(rootCmd *cobra.Command, shell string, cmd *cobra.Command) err
 	case "fish":
 		return rootCmd.GenFishCompletion(cmd.OutOrStdout(), true)
 	default:
-		return fmt.Errorf("unbekannte shell %q", shell)
+		return fmt.Errorf("unknown shell %q", shell)
 	}
 }

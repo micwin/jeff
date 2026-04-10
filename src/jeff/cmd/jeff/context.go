@@ -55,7 +55,7 @@ func setCommandContext(cmd *cobra.Command, configDir string, status bool) error 
 func commandContextFrom(cmd *cobra.Command) (*commandContext, error) {
 	val := cmd.Context().Value(contextKey{})
 	if val == nil {
-		return nil, errors.New("command context nicht initialisiert")
+		return nil, errors.New("command context not initialized")
 	}
 	cc, ok := val.(*commandContext)
 	if !ok {

@@ -15,7 +15,7 @@ func Script(shell string) (string, error) {
 	case "fish":
 		return fishScript, nil
 	default:
-		return "", fmt.Errorf("unbekannte shell %q", shell)
+		return "", fmt.Errorf("unknown shell %q", shell)
 	}
 }
 
@@ -58,11 +58,11 @@ const zshScript = `#compdef jeff
 _jeff() {
   local -a commands
   commands=(
-    'init:Session initialisieren'
-    'ask:Frage an Codex stellen'
-    'chat:Interaktive Session'
-    'completion:Shell-Completions erzeugen'
-    'help:Hilfe anzeigen'
+    'init:Set Codex session'
+    'ask:Ask Codex a question'
+    'chat:Interactive session'
+    'completion:Generate completions'
+    'help:Show help'
   )
 
   if (( CURRENT == 2 )); then
@@ -73,16 +73,16 @@ _jeff() {
   case "$words[2]" in
     init)
       _arguments \
-        '--session[Session-ID setzen]:session-id:_guard "[^ ]#" "session"' \
-        '--last-session[Zuletzt verwendete Session aktivieren]' \
-        '--codex-binary[Pfad zur Codex-CLI setzen]:cmd:_files'
+        '--session[Set session id]:session-id:_guard "[^ ]#" "session"' \
+        '--last-session[Reuse last session]' \
+        '--codex-binary[Set Codex CLI path]:cmd:_files'
       ;;
     ask)
       _arguments \
-        '--session[Session überschreiben]:session-id:_guard "[^ ]#" "session"' \
-        '--codex-binary[Pfad zur Codex-CLI setzen]:cmd:_files' \
-        '--timeout[Antwort-Timeout setzen]:seconds:_guard "[0-9]#" seconds' \
-        '--show-token-cost[Tokenkosten ausgeben]'
+        '--session[Override session]:session-id:_guard "[^ ]#" "session"' \
+        '--codex-binary[Set Codex CLI path]:cmd:_files' \
+        '--timeout[Set timeout seconds]:seconds:_guard "[0-9]#" seconds' \
+        '--show-token-cost[Print token usage]'
       ;;
     chat)
       _arguments
@@ -92,8 +92,8 @@ _jeff() {
         _values 'shell' bash zsh fish
       else
         _arguments \
-          '--dir[Zielverzeichnis für Skript]:dir:_path_files -/'
-          '--print[Skript nur ausgeben]'
+          '--dir[Target directory]:dir:_path_files -/'
+          '--print[Print script only]'
       fi
       ;;
     *)
@@ -116,24 +116,24 @@ function __jeff_using_command
     return 1
 end
 
-complete -c jeff -n '__fish_use_subcommand' -a 'init' -d 'Session initialisieren'
-complete -c jeff -n '__fish_use_subcommand' -a 'ask' -d 'Frage an Codex'
-complete -c jeff -n '__fish_use_subcommand' -a 'chat' -d 'Interaktive Session'
-complete -c jeff -n '__fish_use_subcommand' -a 'completion' -d 'Completion-Skripte'
-complete -c jeff -n '__fish_use_subcommand' -a 'help' -d 'Hilfe anzeigen'
+complete -c jeff -n '__fish_use_subcommand' -a 'init' -d 'Configure Codex session'
+complete -c jeff -n '__fish_use_subcommand' -a 'ask' -d 'Ask Codex'
+complete -c jeff -n '__fish_use_subcommand' -a 'chat' -d 'Interactive session'
+complete -c jeff -n '__fish_use_subcommand' -a 'completion' -d 'Generate completions'
+complete -c jeff -n '__fish_use_subcommand' -a 'help' -d 'Show help'
 
-complete -c jeff -n '__jeff_using_command init' -l session -d 'Session-ID setzen' -r
-complete -c jeff -n '__jeff_using_command init' -l last-session -d 'Letzte Session verwenden'
-complete -c jeff -n '__jeff_using_command init' -l codex-binary -d 'Pfad zur Codex-CLI' -r
+complete -c jeff -n '__jeff_using_command init' -l session -d 'Set session id' -r
+complete -c jeff -n '__jeff_using_command init' -l last-session -d 'Reuse last session'
+complete -c jeff -n '__jeff_using_command init' -l codex-binary -d 'Codex CLI path' -r
 
-complete -c jeff -n '__jeff_using_command ask' -l session -d 'Session überschreiben' -r
-complete -c jeff -n '__jeff_using_command ask' -l codex-binary -d 'Pfad zur Codex-CLI' -r
-complete -c jeff -n '__jeff_using_command ask' -l timeout -d 'Antwort-Timeout Sekunden' -r
-complete -c jeff -n '__jeff_using_command ask' -l show-token-cost -d 'Tokenkosten ausgeben'
+complete -c jeff -n '__jeff_using_command ask' -l session -d 'Override session id' -r
+complete -c jeff -n '__jeff_using_command ask' -l codex-binary -d 'Codex CLI path' -r
+complete -c jeff -n '__jeff_using_command ask' -l timeout -d 'Response timeout seconds' -r
+complete -c jeff -n '__jeff_using_command ask' -l show-token-cost -d 'Print token usage'
 
 complete -c jeff -n '__jeff_using_command completion' -a 'bash' -d 'bash completion'
 complete -c jeff -n '__jeff_using_command completion' -a 'zsh' -d 'zsh completion'
 complete -c jeff -n '__jeff_using_command completion' -a 'fish' -d 'fish completion'
-complete -c jeff -n '__jeff_using_command completion' -l dir -d 'Zielverzeichnis' -r
-complete -c jeff -n '__jeff_using_command completion' -l print -d 'Skript nur ausgeben'
+complete -c jeff -n '__jeff_using_command completion' -l dir -d 'Target directory' -r
+complete -c jeff -n '__jeff_using_command completion' -l print -d 'Print script only'
 `

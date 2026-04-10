@@ -33,7 +33,7 @@ done
 cat "$HEADER_FILE"
 
 after_prompt() {
-  local answer="Antwort: $prompt"
+  local answer="Answer: $prompt"
   if [[ -n "${output_last:-}" && "$output_last" != "-" ]]; then
     printf '%s\n' "$answer" >"$output_last"
   else

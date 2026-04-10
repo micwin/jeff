@@ -11,7 +11,7 @@ VERSION_FILE="$REPO_ROOT/src/jeff/internal/version/VERSION"
 
 need_cmd() {
 	if ! command -v "$1" >/dev/null 2>&1; then
-		echo "Fehlendes Tool: $1" >&2
+		echo "Missing tool: $1" >&2
 		exit 1
 	fi
 }
@@ -22,7 +22,7 @@ log() {
 
 bump_version() {
 	if [ "${SKIP_VERSION_BUMP:-0}" = "1" ]; then
-		log "==> Version bump übersprungen (SKIP_VERSION_BUMP=1)"
+		log "==> Version bump skipped (SKIP_VERSION_BUMP=1)"
 		return
 	fi
 	if [ ! -f "$VERSION_FILE" ]; then
@@ -41,7 +41,7 @@ patch=${patch:-0}
 	esac
 	new_version="$major.$minor.$patch"
 	echo "$new_version" >"$VERSION_FILE"
-	log "==> Version erhöht auf $new_version"
+	log "==> Version bumped to $new_version"
 }
 
 need_cmd go
@@ -52,19 +52,19 @@ mkdir -p "$WORK_DIR/go-cache" "$WORK_DIR/go-tmp" "$DIST_DIR"
 
 GO_ENV="GOCACHE=$WORK_DIR/go-cache GOTMPDIR=$WORK_DIR/go-tmp"
 
-log "==> Go Tests"
+log "==> Go tests"
 (cd "$REPO_ROOT/src/jeff" && env $GO_ENV go test ./...)
 
-log "==> Go Build"
+log "==> Go build"
 (cd "$REPO_ROOT/src/jeff" && env $GO_ENV go build -o "$DIST_DIR/jeff" ./cmd/jeff)
 
 build_docs() {
 	if [ -d "$1" ]; then
-		log "==> Dokumentation in $1 gefunden (noch kein Build-Schritt implementiert)"
+ 	log "==> Documentation directory $1 detected (no build step yet)"
 	fi
 }
 
 build_docs "$REPO_ROOT/doc"
 build_docs "$REPO_ROOT/site"
 
-log "Build abgeschlossen. Artefakte liegen in $DIST_DIR"
+log "Build complete. Artifacts available in $DIST_DIR"

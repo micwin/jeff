@@ -8,7 +8,7 @@ REPO_ROOT=$(cd "$SCRIPT_DIR/.." && pwd)
 
 need_cmd() {
 	if ! command -v "$1" >/dev/null 2>&1; then
-		echo "Fehlendes Tool: $1" >&2
+		echo "Missing tool: $1" >&2
 		exit 1
 	fi
 }
@@ -22,10 +22,10 @@ need_cmd go
 WORK_DIR="$REPO_ROOT/work"
 DIST_DIR="$REPO_ROOT/dist"
 
-log "Erzeuge lokale Arbeitsverzeichnisse..."
+log "Creating local work directories..."
 mkdir -p "$WORK_DIR/go-cache" "$WORK_DIR/go-tmp" "$DIST_DIR"
 
-log "Go-Version:"
+log "Go version:"
 go version
 
-log "Bootstrap abgeschlossen. Verwende scripts/build.sh für Builds."
+log "Bootstrap complete. Use scripts/build.sh for builds."

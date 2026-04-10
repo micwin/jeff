@@ -31,17 +31,17 @@ cp "$SCRIPT_DIR/codex_header.txt" "$CODEX_STUB_DIR/"
 chmod +x "$CODEX_STUB"
 
 if [[ ! -x "$JEFF_BIN" ]]; then
-	echo "Build artefact dist/jeff fehlt – bitte tests.d/000-build ausführen" >&2
+	echo "Build artifact dist/jeff is missing – run tests.d/000-build first" >&2
 	exit 1
 fi
 
 "$JEFF_BIN" --config "$CONFIG_DIR" init --session stub-session --codex-binary "$CODEX_STUB" >/dev/null
 
-ask_plain=$("$JEFF_BIN" --config "$CONFIG_DIR" ask 'Testfrage?')
-assert_eq "Antwort: Testfrage?" "$ask_plain" "ask emits plain answer"
+ask_plain=$("$JEFF_BIN" --config "$CONFIG_DIR" ask 'Test question?')
+assert_eq "Answer: Test question?" "$ask_plain" "ask emits plain answer"
 
-ask_tokens=$("$JEFF_BIN" --config "$CONFIG_DIR" ask --show-token-cost 'Noch eine Frage?')
-if [[ "$ask_tokens" != $'Antwort: Noch eine Frage?\nToken: '* ]]; then
+ask_tokens=$("$JEFF_BIN" --config "$CONFIG_DIR" ask --show-token-cost 'Another question?')
+if [[ "$ask_tokens" != $'Answer: Another question?\nToken: '* ]]; then
 	printf 'FAIL: ask token flag missing expected prefix\n%s\n' "$ask_tokens" >&2
 	exit 1
 fi
@@ -51,12 +51,12 @@ if ! grep -q 'Token: tokens used' <<<"$ask_tokens"; then
 fi
 echo "ok: ask shows token usage when requested"
 
-status_out=$("$JEFF_BIN" --status --config "$CONFIG_DIR" ask 'Statusfrage?')
-if [[ "$status_out" != *$'\n\nAntwort: Statusfrage?' ]]; then
+status_out=$("$JEFF_BIN" --status --config "$CONFIG_DIR" ask 'Status question?')
+if [[ "$status_out" != *$'\n\nAnswer: Status question?' ]]; then
 	printf 'FAIL: status output missing answer separation\n%s\n' "$status_out" >&2
 	exit 1
 fi
-meta="${status_out%$'\n\nAntwort: Statusfrage?'}"
+meta="${status_out%$'\n\nAnswer: Status question?'}"
 check_meta_line() { local key=$1; grep -q "^$key: " <<<"$meta" || { printf 'FAIL: missing %s line\n' "$key"; exit 1; }; }
 check_meta_line "workdir"
 check_meta_line "model"

@@ -12,7 +12,7 @@ import (
 func newChatCmd() *cobra.Command {
 	cmd := &cobra.Command{
 		Use:   "chat",
-		Short: "Interaktive Codex-Session starten",
+		Short: "Start an interactive Codex session",
 		Args:  cobra.NoArgs,
 		RunE: func(cmd *cobra.Command, args []string) error {
 			ctx, err := commandContextFrom(cmd)
@@ -36,7 +36,7 @@ func runChat(ctx *commandContext) error {
 		sessionID = cfg.LastSession
 	}
 	if sessionID == "" {
-		return errors.New("keine Session bekannt – bitte zuerst 'jeff init' ausführen")
+		return errors.New("no active session – run 'jeff init' first")
 	}
 
 	codexBinary := cfg.CodexBinary
@@ -56,7 +56,7 @@ func runChat(ctx *commandContext) error {
 	cmd.Stdin = ctx.stdin
 
 	if err := cmd.Run(); err != nil {
-		return fmt.Errorf("codex chat fehlgeschlagen: %w", err)
+		return fmt.Errorf("codex chat failed: %w", err)
 	}
 
 	cfg.RecordSession(strings.TrimSpace(sessionID))
