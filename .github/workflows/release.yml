@@ -29,7 +29,7 @@ jobs:
       - name: Read release version
         id: version
         run: |
-          REF_NAME=${GITHUB_REF##*/}
+          REF_NAME=${GITHUB_REF#refs/heads/}
           VERSION=${REF_NAME#release/v}
           echo "version=$VERSION" >> $GITHUB_OUTPUT
 
