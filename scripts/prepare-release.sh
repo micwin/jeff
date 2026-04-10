@@ -176,9 +176,19 @@ PY
   mark_done downloads
 }
 
+commit_release_changes() {
+  if git diff --cached --quiet; then
+    echo "[prepare] no staged changes to commit"
+    return
+  fi
+  git commit -m "chore: release prep v$RELEASE_VERSION"
+  echo "[prepare] committed release prep changes"
+}
+
 ensure_release_branch
 run_build
 create_release_notes
 update_downloads_table
+commit_release_changes
 
 echo "Prepare-release completed for v$RELEASE_VERSION. Review changes and run scripts/publish-release.sh when ready."
