@@ -1,0 +1,36 @@
+@import url('https://fonts.googleapis.com/css2?family=Courier+Prime:wght@400;700&display=swap');
+
+$earth-dark: #2f2a23;
+$earth-mid: #5f5346;
+$earth-light: #eae2d4;
+$accent: #6ca17c;
+
+body {
+  background: $earth-light;
+  color: $earth-dark;
+  font-family: 'Courier Prime', 'Courier New', monospace;
+}
+
+.site-header {
+  background: linear-gradient(120deg, darken($earth-mid, 10%), $earth-mid);
+  border-bottom: 4px solid $accent;
+}
+
+.site-title,
+.site-title:visited {
+  color: #fff;
+}
+
+.site-nav .page-link {
+  color: lighten($earth-light, 5%);
+}
+
+.site-footer {
+  background: lighten($earth-mid, 25%);
+  color: $earth-dark;
+}
+
+a,
+a:visited {
+  color: $accent;
+}
