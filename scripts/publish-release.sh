@@ -98,65 +98,6 @@ push_release_branch() {
   mark_done push-release
 }
 
-create_github_release() {
-  if step_done github-release; then
-    echo "[publish] GitHub release already created"
-    return
-  fi
-  DIST_DIR="$REPO_ROOT/dist"
-  arch=$(dpkg --print-architecture 2>/dev/null || uname -m)
-  DEB="$DIST_DIR/jeff_${RELEASE_VERSION}_${arch}.deb"
-  BIN="$DIST_DIR/jeff"
-
-  if command -v gh >/dev/null 2>&1; then
-    gh release create "v$RELEASE_VERSION" "$BIN#jeff" "$DEB#jeff_${RELEASE_VERSION}_${arch}.deb" \
-      --title "Jeff v$RELEASE_VERSION" \
-      --notes-file "$REPO_ROOT/doc/ghpages/releases/v$RELEASE_VERSION.md" || {
-        echo "gh release create failed" >&2
-        exit 1
-      }
-    mark_done github-release
-  else
-    cat <<EOF
-GitHub CLI (gh) not found. Please create the release manually:
-  gh release create v$RELEASE_VERSION dist/jeff dist/jeff_${RELEASE_VERSION}_${arch}.deb \\
-      --title "Jeff v$RELEASE_VERSION" --notes-file doc/ghpages/releases/v$RELEASE_VERSION.md
-After creating the release, re-run this script.
-EOF
-    exit 1
-  fi
-}
-
-publish_ghpages() {
-  if step_done ghpages; then
-    echo "[publish] ghpages already updated"
-    return
-  fi
-
-  BUNDLE_PATH="$REPO_ROOT/vendor/bundle"
-  SITE_DIR="$WORK_DIR/ghpages-site"
-  rm -rf "$SITE_DIR"
-  (cd "$REPO_ROOT/doc/ghpages" && BUNDLE_PATH="$BUNDLE_PATH" bundle exec jekyll build -d "$SITE_DIR")
-
-  WORKTREE_DIR="$WORK_DIR/ghpages-worktree"
-  rm -rf "$WORKTREE_DIR"
-  if git show-ref --verify --quiet refs/heads/ghpages; then
-    git worktree add -B ghpages "$WORKTREE_DIR" ghpages
-  else
-    git worktree add "$WORKTREE_DIR" --detach
-    (cd "$WORKTREE_DIR" && git checkout --orphan ghpages)
-  fi
-
-  (cd "$WORKTREE_DIR" && git rm -rf . >/dev/null 2>&1 || true)
-  rsync -a --delete "$SITE_DIR"/ "$WORKTREE_DIR"/
-  (cd "$WORKTREE_DIR" && git add --all && git commit -m "Publish site for v$RELEASE_VERSION" && git push origin ghpages)
-  git worktree remove "$WORKTREE_DIR"
-  mark_done ghpages
-}
-
 verify_artifacts
 push_release_branch
-create_github_release
-publish_ghpages
-
-echo "Release v$RELEASE_VERSION published."
+echo "Release branch pushed. Trigger GitHub Actions to publish v$RELEASE_VERSION."
