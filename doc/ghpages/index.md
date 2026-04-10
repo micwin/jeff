@@ -21,5 +21,5 @@ Happy hacking!
 ## Latest Release
 
 - [Download Jeff v0.1.11](https://github.com/micwin/jeff/releases/tag/v0.1.11)
-- [Release notes]({{ "/releases/v0.1.11.html" | relative_url }})
+- [Release notes](/releases/v0.1.11.html)
 <!-- latest-release:end -->
