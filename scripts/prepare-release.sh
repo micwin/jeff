@@ -97,24 +97,6 @@ EOF
     git add "$notes_file"
   fi
 
-  release_index="$REPO_ROOT/doc/ghpages/releases.md"
-  if [ ! -f "$release_index" ]; then
-    cat <<EOF >"$release_index"
----
-layout: page
-title: Releases
----
-
-## Releases
-
-EOF
-    git add "$release_index"
-  fi
-  if ! grep -q "v$VERSION" "$release_index"; then
-    printf '\n- [v%s](/releases/v%s.html)\n' "$VERSION" "$VERSION" >>"$release_index"
-    git add "$release_index"
-  fi
-
   index_file="$REPO_ROOT/doc/ghpages/index.md"
   latest_block="<!-- latest-release:start -->\n## Latest Release\n\n- [Download Jeff v$VERSION](https://github.com/micwin/jeff/releases/tag/v$VERSION)\n- [Release notes](/releases/v$VERSION.html)\n<!-- latest-release:end -->"
   if grep -q "latest-release:start" "$index_file"; then
