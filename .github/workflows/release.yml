@@ -1,0 +1,62 @@
+name: Release Jeff
+
+on:
+  push:
+    branches:
+      - 'release/v*'
+
+jobs:
+  release:
+    permissions:
+      contents: write
+      pages: write
+      id-token: write
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Setup Go
+        uses: actions/setup-go@v5
+        with:
+          go-version-file: src/jeff/go.mod
+
+      - name: Build binary and deb
+        run: |
+          SKIP_VERSION_BUMP=1 ./scripts/build.sh --compile --deb
+
+      - name: Read release version
+        id: version
+        run: |
+          REF_NAME=${GITHUB_REF##*/}
+          VERSION=${REF_NAME#release/v}
+          echo "version=$VERSION" >> $GITHUB_OUTPUT
+
+      - name: Create GitHub release
+        uses: softprops/action-gh-release@v1
+        with:
+          tag_name: v${{ steps.version.outputs.version }}
+          name: Jeff v${{ steps.version.outputs.version }}
+          body_path: doc/ghpages/releases/v${{ steps.version.outputs.version }}.md
+          files: |
+            dist/jeff
+            dist/jeff_${{ steps.version.outputs.version }}_amd64.deb
+
+      - name: Setup Ruby
+        uses: ruby/setup-ruby@v1
+        with:
+          ruby-version: 3.2
+          bundler-cache: true
+          working-directory: doc/ghpages
+
+      - name: Build GitHub Pages artifact
+        run: bundle exec jekyll build -d ../../work/ghpages-site
+        working-directory: doc/ghpages
+
+      - name: Deploy GitHub Pages
+        uses: peaceiris/actions-gh-pages@v3
+        with:
+          github_token: ${{ secrets.GITHUB_TOKEN }}
+          publish_dir: work/ghpages-site
+          keep_files: false
