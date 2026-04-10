@@ -1,7 +1,0 @@
-Package: jeff
-Version: 0.1.11
-Section: utils
-Priority: optional
-Architecture: amd64
-Maintainer: Unknown <unknown@example.com>
-Description: Jeff CLI assistant packaged for Debian-based systems.
