@@ -1,0 +1,9 @@
+# test log
+getenv TMPDIR
+open /tmp/TestStoreLoadAndSave3951851517/001/config.json
+stat /tmp/TestStoreLoadAndSave3951851517/001
+open /tmp/TestStoreLoadAndSave3951851517/001/config.json.tmp
+stat /tmp/TestStoreLoadAndSave3951851517/001/config.json
+open /tmp/TestStoreLoadAndSave3951851517/001/config.json
+open /tmp/TestStoreLoadAndSave3951851517/001/config.json
+open /tmp
