@@ -1,0 +1,8 @@
+./ask.go
+./chat.go
+./completion.go
+./context.go
+./init.go
+./main.go
+./statusmeta.go
+./version_cmd.go
