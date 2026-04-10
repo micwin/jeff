@@ -47,11 +47,12 @@ jobs:
         uses: ruby/setup-ruby@v1
         with:
           ruby-version: 3.2
-          bundler-cache: true
-          working-directory: doc/ghpages
 
       - name: Build GitHub Pages site
         run: ./scripts/build-docs.sh
+
+      - name: Clean doc bundler artifacts
+        run: rm -rf doc/ghpages/.bundle doc/ghpages/vendor || true
 
       - name: Prepare gh-pages branch
         env:
