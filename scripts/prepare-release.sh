@@ -78,6 +78,7 @@ create_release_notes() {
 ---
 layout: page
 title: Release v$VERSION
+nav_exclude: true
 ---
 
 ## Highlights
