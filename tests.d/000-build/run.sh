@@ -6,4 +6,4 @@ set -euo pipefail
 SCRIPT_DIR=$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)
 REPO_ROOT=$(cd "$SCRIPT_DIR/../.." && pwd)
 
-sh "$REPO_ROOT/scripts/build.sh"
+SKIP_VERSION_BUMP=1 sh "$REPO_ROOT/scripts/build.sh"

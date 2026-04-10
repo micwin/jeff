@@ -2,8 +2,6 @@ package main
 
 import (
 	"fmt"
-	"os"
-	"path/filepath"
 
 	"github.com/spf13/cobra"
 )
@@ -35,30 +33,13 @@ Beispiele:
 }
 
 func runCompletion(rootCmd *cobra.Command, shell string, cmd *cobra.Command) error {
-	output := cmd.OutOrStdout()
-
 	switch shell {
 	case "bash":
-		return rootCmd.GenBashCompletion(output)
+		return rootCmd.GenBashCompletion(cmd.OutOrStdout())
 	case "zsh":
-		return rootCmd.GenZshCompletion(output)
+		return rootCmd.GenZshCompletion(cmd.OutOrStdout())
 	case "fish":
-		dir, err := os.MkdirTemp("", "jeff-completion")
-		if err != nil {
-			return err
-		}
-		defer os.RemoveAll(dir)
-
-		path := filepath.Join(dir, "jeff.fish")
-		if err := rootCmd.GenFishCompletionFile(path, true); err != nil {
-			return err
-		}
-		data, err := os.ReadFile(path)
-		if err != nil {
-			return err
-		}
-		_, err = output.Write(data)
-		return err
+		return rootCmd.GenFishCompletion(cmd.OutOrStdout(), true)
 	default:
 		return fmt.Errorf("unbekannte shell %q", shell)
 	}

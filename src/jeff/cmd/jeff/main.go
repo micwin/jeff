@@ -1,9 +1,12 @@
 package main
 
 import (
+	"fmt"
 	"os"
 
 	"github.com/spf13/cobra"
+
+	"jeff/internal/version"
 )
 
 var (
@@ -19,19 +22,26 @@ func main() {
 }
 
 func newRootCommand() *cobra.Command {
-	cmd := &cobra.Command{
-		Use:   "jeff",
-		Short: "Kommandozeilen-Assistent mit Codex-Anbindung",
-		Long: `jeff – Kommandozeilen-Assistent.
+	ver := version.Current()
+	longDesc := fmt.Sprintf(`jeff – Kommandozeilen-Assistent.
+
+Version: %s
 
 Kommandos:
   init        Session-ID setzen oder letzte Session wiederverwenden
   ask         Eine Frage stellen (Optionen: --session, --codex-binary, --timeout, --show-token-cost; global: --status)
   chat        Interaktive Codex-Session (nutzt aktuelle Session-ID)
-  completion  Shell-Completions erzeugen`,
+  completion  Shell-Completions erzeugen`, ver)
+
+	cmd := &cobra.Command{
+		Use:   "jeff",
+		Short: "Kommandozeilen-Assistent mit Codex-Anbindung",
+		Long:  longDesc,
 		SilenceUsage:  false,
 		SilenceErrors: false,
 	}
+	cmd.Version = ver
+	cmd.SetVersionTemplate("jeff version: {{.Version}}\n")
 
 	cmd.PersistentFlags().StringVar(&configDir, "config", "", "Konfigurationsverzeichnis (Standard: XDG)")
 	cmd.PersistentFlags().BoolVar(&showStatus, "status", false, "Statusblock vor Antworten anzeigen")
@@ -44,6 +54,7 @@ Kommandos:
 		newAskCmd(),
 		newChatCmd(),
 		newCompletionCmd(cmd),
+		newVersionCmd(),
 	)
 
 	return cmd
