@@ -10,7 +10,8 @@ WORK_DIR="$REPO_ROOT/work"
 mkdir -p "$WORK_DIR/ghpages-site"
 
 pushd "$REPO_ROOT/doc/ghpages" >/dev/null
-bundle install --path "$REPO_ROOT/vendor/bundle"
+bundle config set --local path "$REPO_ROOT/vendor/bundle"
+bundle install
 BUNDLE_PATH="$REPO_ROOT/vendor/bundle" bundle exec jekyll build -d "$WORK_DIR/ghpages-site"
 popd >/dev/null
 
