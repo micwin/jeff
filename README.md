@@ -1,7 +1,7 @@
 # Jeff
 
 ## Overview
-The Jeff workspace hosts multi-language services focused on integration workflows and operational tooling. Modules live in `src/` under capability folders (e.g., `src/ingest`, `src/orchestrators`, `src/infra`). Build artifacts are produced via the scripts documented below and routed into `work/` (intermediates) and `dist/` (release outputs).
+Jeff is a CLI helper for developers: a collection of shell-friendly tools that add well-placed boosts to everyday workflows. Source lives under `src/`, build scripts under `scripts/`, and artifacts land in `dist/` (final binaries) or `work/` (intermediates).
 
 ## Key Components
 - **Multi-runtime services** — binaries, CLIs, or daemons written in Go, Rust, Python, etc.
