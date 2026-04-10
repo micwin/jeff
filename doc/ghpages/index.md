@@ -15,11 +15,11 @@ Happy hacking!
 
 ## Downloads
 
-- [Download overview](/downloads.html)
+- [Download overview]({{ "/downloads.html" | relative_url }})
 
 <!-- latest-release:start -->
 ## Latest Release
 
 - [Download Jeff v0.1.11](https://github.com/micwin/jeff/releases/tag/v0.1.11)
-- [Release notes](/releases/v0.1.11.html)
+- [Release notes]({{ "/releases/v0.1.11.html" | relative_url }})
 <!-- latest-release:end -->
