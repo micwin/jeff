@@ -28,13 +28,15 @@ bump_version() {
 	if [ ! -f "$VERSION_FILE" ]; then
 		echo "0.1.0" >"$VERSION_FILE"
 	fi
-	current=$(tr -d '\r' <"$VERSION_FILE" | head -n 1)
-	IFS='.' set -- $current
-	major=${1:-0}
-	minor=${2:-1}
-	patch=${3:-0}
+current=$(tr -d '\r' <"$VERSION_FILE" | head -n 1)
+IFS='.' read -r major minor patch <<EOF
+$current
+EOF
+major=${major:-0}
+minor=${minor:-1}
+patch=${patch:-0}
 	case $patch in
-		*[^0-9]*) patch=0 ;;
+		*[!0-9]*) patch=0 ;;
 		*) patch=$((patch + 1)) ;;
 	esac
 	new_version="$major.$minor.$patch"
