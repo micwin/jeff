@@ -14,9 +14,15 @@ if [ ! -f "$VERSION_FILE" ]; then
   exit 1
 fi
 
-VERSION=$(tr -d '\r' <"$VERSION_FILE" | head -n 1)
-RELEASE_BRANCH="release/v$VERSION"
-STATE_DIR="$WORK_DIR/release-$VERSION"
+CURRENT_BRANCH=$(git rev-parse --abbrev-ref HEAD)
+FILE_VERSION=$(tr -d '\r' <"$VERSION_FILE" | head -n 1)
+if [[ $CURRENT_BRANCH =~ ^release/v(.+)$ ]]; then
+  RELEASE_VERSION="${BASH_REMATCH[1]}"
+else
+  RELEASE_VERSION="$FILE_VERSION"
+fi
+RELEASE_BRANCH="release/v$RELEASE_VERSION"
+STATE_DIR="$WORK_DIR/release-$RELEASE_VERSION"
 mkdir -p "$STATE_DIR"
 
 current_branch() {
@@ -32,6 +38,9 @@ mark_done() {
 }
 
 ensure_clean_tree() {
+  if [ "$(current_branch)" = "$RELEASE_BRANCH" ]; then
+    return
+  fi
   if ! git diff --quiet --ignore-submodules HEAD; then
     echo "Working tree has uncommitted changes. Commit or stash them before continuing." >&2
     exit 1
@@ -44,11 +53,14 @@ ensure_release_branch() {
     return
   fi
 
+  if [ "$(current_branch)" = "$RELEASE_BRANCH" ]; then
+    mark_done branch
+    return
+  fi
+
   ensure_clean_tree
   if git rev-parse --verify --quiet "$RELEASE_BRANCH" >/dev/null; then
-    if [ "$(current_branch)" != "$RELEASE_BRANCH" ]; then
-      git checkout "$RELEASE_BRANCH"
-    fi
+    git checkout "$RELEASE_BRANCH"
   else
     git checkout -b "$RELEASE_BRANCH"
   fi
@@ -60,7 +72,7 @@ run_build() {
     echo "[prepare] build step already done"
     return
   fi
-  "$REPO_ROOT/scripts/build.sh" --compile --deb
+  SKIP_VERSION_BUMP=1 "$REPO_ROOT/scripts/build.sh" --compile --deb
   mark_done build
 }
 
@@ -72,12 +84,12 @@ create_release_notes() {
 
   notes_dir="$REPO_ROOT/doc/ghpages/releases"
   mkdir -p "$notes_dir"
-  notes_file="$notes_dir/v$VERSION.md"
+  notes_file="$notes_dir/v$RELEASE_VERSION.md"
   if [ ! -f "$notes_file" ]; then
     cat <<EOF >"$notes_file"
 ---
 layout: page
-title: Release v$VERSION
+title: Release v$RELEASE_VERSION
 ---
 
 ## Highlights
@@ -86,9 +98,9 @@ title: Release v$VERSION
 
 ## Downloads
 
-- [GitHub Release](https://github.com/micwin/jeff/releases/tag/v$VERSION)
-- [Linux binary](https://github.com/micwin/jeff/releases/download/v$VERSION/jeff)
-- [Debian package](https://github.com/micwin/jeff/releases/download/v$VERSION/jeff_${VERSION}_amd64.deb)
+- [GitHub Release](https://github.com/micwin/jeff/releases/tag/v$RELEASE_VERSION)
+- [Linux binary](https://github.com/micwin/jeff/releases/download/v$RELEASE_VERSION/jeff)
+- [Debian package](https://github.com/micwin/jeff/releases/download/v$RELEASE_VERSION/jeff_${RELEASE_VERSION}_amd64.deb)
 
 ## Changes
 
@@ -98,7 +110,7 @@ EOF
   fi
 
   index_file="$REPO_ROOT/doc/ghpages/index.md"
-  latest_block="<!-- latest-release:start -->\n## Latest Release\n\n- [Download Jeff v$VERSION](https://github.com/micwin/jeff/releases/tag/v$VERSION)\n- [Release notes](/releases/v$VERSION.html)\n<!-- latest-release:end -->"
+  latest_block="<!-- latest-release:start -->\n## Latest Release\n\n- [Download Jeff v$RELEASE_VERSION](https://github.com/micwin/jeff/releases/tag/v$RELEASE_VERSION)\n- [Release notes](/releases/v$RELEASE_VERSION.html)\n<!-- latest-release:end -->"
   if grep -q "latest-release:start" "$index_file"; then
     python3 - "$index_file" "$latest_block" <<'PY'
 import sys, pathlib
@@ -142,7 +154,7 @@ EOF
     git add "$downloads_file"
   fi
 
-  python3 - "$downloads_file" "$VERSION" <<'PY'
+  python3 - "$downloads_file" "$RELEASE_VERSION" <<'PY'
 import sys, pathlib
 path = pathlib.Path(sys.argv[1])
 version = sys.argv[2]
