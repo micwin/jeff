@@ -61,11 +61,14 @@ jobs:
           GIT_COMMITTER_NAME: Jeff Release Bot
           GIT_COMMITTER_EMAIL: release-bot@example.com
         run: |
+          SITE_STAGING=$(mktemp -d)
+          cp -R work/ghpages-site/. "$SITE_STAGING"/
           git fetch origin gh-pages || true
           git checkout gh-pages || git checkout --orphan gh-pages
           git rm -rf . >/dev/null 2>&1 || true
           git clean -fdx >/dev/null 2>&1 || true
-          cp -R work/ghpages-site/. .
+          cp -R "$SITE_STAGING"/. .
+          rm -rf "$SITE_STAGING"
           git add --all
           git commit -m "Publish site for v${{ steps.version.outputs.version }}"
 
