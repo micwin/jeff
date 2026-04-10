@@ -2,23 +2,30 @@ package main
 
 import (
 	"errors"
-	"flag"
 	"fmt"
 	"os/exec"
 	"strings"
+
+	"github.com/spf13/cobra"
 )
 
-func runChat(ctx *commandContext, argv []string) error {
-	flags := flag.NewFlagSet("chat", flag.ContinueOnError)
-	flags.SetOutput(ctx.stderr)
-
-	if err := flags.Parse(argv); err != nil {
-		return err
+func newChatCmd() *cobra.Command {
+	cmd := &cobra.Command{
+		Use:   "chat",
+		Short: "Interaktive Codex-Session starten",
+		Args:  cobra.NoArgs,
+		RunE: func(cmd *cobra.Command, args []string) error {
+			ctx, err := commandContextFrom(cmd)
+			if err != nil {
+				return err
+			}
+			return runChat(ctx)
+		},
 	}
-	if flags.NArg() > 0 {
-		return errors.New("chat benötigt keine zusätzlichen Argumente")
-	}
+	return cmd
+}
 
+func runChat(ctx *commandContext) error {
 	cfg, err := ctx.loadConfig()
 	if err != nil {
 		return err

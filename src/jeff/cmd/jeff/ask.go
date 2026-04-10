@@ -3,29 +3,50 @@ package main
 import (
 	"context"
 	"errors"
-	"flag"
 	"fmt"
 	"os"
 	"os/exec"
 	"strings"
 	"time"
+
+	"github.com/spf13/cobra"
 )
 
-func runAsk(ctx *commandContext, argv []string) error {
-	flags := flag.NewFlagSet("ask", flag.ContinueOnError)
-	flags.SetOutput(ctx.stderr)
+type askOptions struct {
+	sessionOverride string
+	codexBinary     string
+	showTokens      bool
+	timeout         time.Duration
+	question        string
+}
 
-	sessionFlag := flags.String("session", "", "Session-ID überschreiben")
-	codexBinaryFlag := flags.String("codex-binary", "", "Pfad zur Codex-CLI überschreiben")
-	showTokens := flags.Bool("show-token-cost", false, "Tokenkosten zusätzlich ausgeben")
-	timeout := flags.Duration("timeout", 45*time.Second, "Zeitlimit für die Antwort")
+func newAskCmd() *cobra.Command {
+	var opts askOptions
 
-	if err := flags.Parse(argv); err != nil {
-		return err
+	cmd := &cobra.Command{
+		Use:   "ask <frage>",
+		Short: "Frage an Codex stellen",
+		Args:  cobra.MinimumNArgs(1),
+		RunE: func(cmd *cobra.Command, args []string) error {
+			ctx, err := commandContextFrom(cmd)
+			if err != nil {
+				return err
+			}
+			opts.question = strings.TrimSpace(strings.Join(args, " "))
+			return runAsk(ctx, opts)
+		},
 	}
 
-	question := strings.TrimSpace(strings.Join(flags.Args(), " "))
-	if question == "" {
+	cmd.Flags().StringVar(&opts.sessionOverride, "session", "", "Session-ID überschreiben")
+	cmd.Flags().StringVar(&opts.codexBinary, "codex-binary", "", "Pfad zur Codex-CLI überschreiben")
+	cmd.Flags().BoolVar(&opts.showTokens, "show-token-cost", false, "Tokenkosten zusätzlich ausgeben")
+	cmd.Flags().DurationVar(&opts.timeout, "timeout", 45*time.Second, "Zeitlimit für die Antwort")
+
+	return cmd
+}
+
+func runAsk(ctx *commandContext, opts askOptions) error {
+	if opts.question == "" {
 		return errors.New("Frage fehlt – Beispiel: jeff ask \"Was ist das für ein Verzeichnis?\"")
 	}
 
@@ -34,7 +55,7 @@ func runAsk(ctx *commandContext, argv []string) error {
 		return err
 	}
 
-	sessionID := strings.TrimSpace(*sessionFlag)
+	sessionID := strings.TrimSpace(opts.sessionOverride)
 	if sessionID == "" {
 		if cfg.ActiveSession != "" {
 			sessionID = cfg.ActiveSession
@@ -46,7 +67,7 @@ func runAsk(ctx *commandContext, argv []string) error {
 		return errors.New("keine Session bekannt – bitte zuerst 'jeff init' ausführen")
 	}
 
-	codexBinary := strings.TrimSpace(*codexBinaryFlag)
+	codexBinary := strings.TrimSpace(opts.codexBinary)
 	if codexBinary == "" {
 		codexBinary = cfg.CodexBinary
 	}
@@ -54,7 +75,7 @@ func runAsk(ctx *commandContext, argv []string) error {
 		codexBinary = "codex"
 	}
 
-	ctxWithTimeout, cancel := context.WithTimeout(context.Background(), *timeout)
+	ctxWithTimeout, cancel := context.WithTimeout(context.Background(), opts.timeout)
 	defer cancel()
 
 	tmpFile, err := os.CreateTemp("", "jeff-codex-response-*.txt")
@@ -71,7 +92,7 @@ func runAsk(ctx *commandContext, argv []string) error {
 		"exec",
 		"--skip-git-repo-check",
 		"--output-last-message", tmpPath,
-		"resume", sessionID, question,
+		"resume", sessionID, opts.question,
 	}
 
 	var stdoutBuf, stderrBuf strings.Builder
@@ -105,7 +126,7 @@ func runAsk(ctx *commandContext, argv []string) error {
 
 	fmt.Fprintln(ctx.stdout, answer)
 
-	if *showTokens {
+	if opts.showTokens {
 		if usage := extractTokenUsage(stdoutBuf.String()); usage != "" {
 			fmt.Fprintf(ctx.stdout, "Token: %s\n", usage)
 		}

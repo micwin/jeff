@@ -3,56 +3,58 @@ package main
 import (
 	"bufio"
 	"errors"
-	"flag"
 	"fmt"
 	"io"
 	"strings"
+
+	"github.com/spf13/cobra"
+
+	"jeff/internal/config"
 )
 
-func runInit(ctx *commandContext, args []string) error {
-	flags := flag.NewFlagSet("init", flag.ContinueOnError)
-	flags.SetOutput(ctx.stderr)
+type initOptions struct {
+	session     string
+	useLast     bool
+	codexBinary string
+}
 
-	sessionFlag := flags.String("session", "", "Session-ID für Codex")
-	lastSessionFlag := flags.Bool("last-session", false, "Letzte gespeicherte Session reaktivieren")
-	codexBinaryFlag := flags.String("codex-binary", "", "Pfad zur Codex-CLI speichern")
+func newInitCmd() *cobra.Command {
+	var opts initOptions
 
-	if err := flags.Parse(args); err != nil {
-		return err
+	cmd := &cobra.Command{
+		Use:   "init",
+		Short: "Session-ID setzen oder letzte Session wiederverwenden",
+		RunE: func(cmd *cobra.Command, args []string) error {
+			ctx, err := commandContextFrom(cmd)
+			if err != nil {
+				return err
+			}
+			return runInit(ctx, opts)
+		},
 	}
 
+	cmd.Flags().StringVar(&opts.session, "session", "", "Session-ID für Codex")
+	cmd.Flags().BoolVar(&opts.useLast, "last-session", false, "Letzte gespeicherte Session reaktivieren")
+	cmd.Flags().StringVar(&opts.codexBinary, "codex-binary", "", "Pfad zur Codex-CLI speichern")
+
+	return cmd
+}
+
+func runInit(ctx *commandContext, opts initOptions) error {
 	cfg, err := ctx.loadConfig()
 	if err != nil {
 		return err
 	}
 
-	var session string
-	switch {
-	case *lastSessionFlag:
-		if cfg.LastSession == "" {
-			return errors.New("keine letzte Session vorhanden – bitte --session angeben")
-		}
-		session = cfg.LastSession
-	case *sessionFlag != "":
-		session = strings.TrimSpace(*sessionFlag)
-	default:
-		fmt.Fprint(ctx.stdout, "Session-ID eingeben: ")
-		reader := bufio.NewReader(ctx.stdin)
-		value, readErr := reader.ReadString('\n')
-		if readErr != nil && !errors.Is(readErr, io.EOF) {
-			return fmt.Errorf("eingabe lesen: %w", readErr)
-		}
-		session = strings.TrimSpace(value)
-	}
-
-	if session == "" {
-		return errors.New("Session-ID darf nicht leer sein")
+	session, err := determineSession(ctx, cfg, opts)
+	if err != nil {
+		return err
 	}
 
 	cfg.RecordSession(session)
 
-	if *codexBinaryFlag != "" {
-		cfg.CodexBinary = strings.TrimSpace(*codexBinaryFlag)
+	if opts.codexBinary != "" {
+		cfg.CodexBinary = strings.TrimSpace(opts.codexBinary)
 		fmt.Fprintf(ctx.stdout, "Codex-Binary gesetzt auf %s\n", cfg.CodexBinary)
 	}
 
@@ -62,4 +64,32 @@ func runInit(ctx *commandContext, args []string) error {
 
 	fmt.Fprintf(ctx.stdout, "Session %s gespeichert.\n", session)
 	return nil
+}
+
+func determineSession(ctx *commandContext, cfg *config.Config, opts initOptions) (string, error) {
+	switch {
+	case opts.useLast:
+		if cfg.LastSession == "" {
+			return "", errors.New("keine letzte Session vorhanden – bitte --session angeben")
+		}
+		return cfg.LastSession, nil
+	case opts.session != "":
+		return strings.TrimSpace(opts.session), nil
+	default:
+		return promptForSession(ctx.stdin, ctx.stdout)
+	}
+}
+
+func promptForSession(r io.Reader, w io.Writer) (string, error) {
+	fmt.Fprint(w, "Session-ID eingeben: ")
+	reader := bufio.NewReader(r)
+	value, err := reader.ReadString('\n')
+	if err != nil && !errors.Is(err, io.EOF) {
+		return "", fmt.Errorf("eingabe lesen: %w", err)
+	}
+	session := strings.TrimSpace(value)
+	if session == "" {
+		return "", errors.New("Session-ID darf nicht leer sein")
+	}
+	return session, nil
 }
