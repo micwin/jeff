@@ -9,5 +9,8 @@ markdown: kramdown
 plugins:
   - jekyll-feed
   - jekyll-seo-tag
+sass:
+  sass_dir: assets/css
+  style: compressed
 exclude:
   - vendor
