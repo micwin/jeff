@@ -78,6 +78,7 @@ create_release_notes() {
 ---
 layout: page
 title: Release v$VERSION
+nav_exclude: true
 ---
 
 ## Highlights
@@ -95,24 +96,6 @@ title: Release v$VERSION
 - _List changes here_
 EOF
     git add "$notes_file"
-  fi
-
-  release_index="$REPO_ROOT/doc/ghpages/releases.md"
-  if [ ! -f "$release_index" ]; then
-    cat <<EOF >"$release_index"
----
-layout: page
-title: Releases
----
-
-## Releases
-
-EOF
-    git add "$release_index"
-  fi
-  if ! grep -q "v$VERSION" "$release_index"; then
-    printf '\n- [v%s](/releases/v%s.html)\n' "$VERSION" "$VERSION" >>"$release_index"
-    git add "$release_index"
   fi
 
   index_file="$REPO_ROOT/doc/ghpages/index.md"
@@ -138,8 +121,53 @@ PY
   mark_done notes
 }
 
+update_downloads_table() {
+  if step_done downloads; then
+    echo "[prepare] downloads table already updated"
+    return
+  fi
+
+  downloads_file="$REPO_ROOT/doc/ghpages/downloads.md"
+  if [ ! -f "$downloads_file" ]; then
+    cat <<EOF >"$downloads_file"
+---
+layout: page
+title: Downloads
+---
+
+Direct links to current and previous builds.
+
+| Version | Binary | Debian | Notes |
+|---------|--------|--------|-------|
+EOF
+    git add "$downloads_file"
+  fi
+
+  python3 - "$downloads_file" "$VERSION" <<'PY'
+import sys, pathlib
+path = pathlib.Path(sys.argv[1])
+version = sys.argv[2]
+row = f"| v{version} | [Binary](https://github.com/micwin/jeff/releases/download/v{version}/jeff) | [Debian](https://github.com/micwin/jeff/releases/download/v{version}/jeff_{version}_amd64.deb) | [Notes](/releases/v{version}.html) |"
+lines = path.read_text().splitlines()
+try:
+    header_idx = next(i for i, line in enumerate(lines) if line.startswith('| Version'))
+except StopIteration:
+    raise SystemExit('downloads table header not found')
+sep_idx = header_idx + 1
+if sep_idx >= len(lines) or not lines[sep_idx].startswith('|---------'):
+    raise SystemExit('downloads table separator missing')
+body = [line for line in lines[sep_idx+1:] if not line.startswith(f"| v{version} ")]
+body.insert(0, row)
+new_lines = lines[:sep_idx+1] + body
+path.write_text("\n".join(new_lines) + "\n")
+PY
+  git add "$downloads_file"
+  mark_done downloads
+}
+
 ensure_release_branch
 run_build
 create_release_notes
+update_downloads_table
 
 echo "Prepare-release completed for v$VERSION. Review changes and run scripts/publish-release.sh when ready."
