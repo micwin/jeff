@@ -181,4 +181,4 @@ run_build
 create_release_notes
 update_downloads_table
 
-echo "Prepare-release completed for v$VERSION. Review changes and run scripts/publish-release.sh when ready."
+echo "Prepare-release completed for v$RELEASE_VERSION. Review changes and run scripts/publish-release.sh when ready."
