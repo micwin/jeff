@@ -12,3 +12,9 @@ Welcome to the Jeff CLI project! Jeff is your CLI helper with carefully placed b
 3. Ask questions using `jeff ask "What does this repo do?"`.
 
 Happy hacking!
+
+## Downloads
+
+- [Download overview](/downloads.html)
+
+<!-- latest-release:start -->\n## Latest Release\n\n- [Download Jeff v0.1.7](https://github.com/micwin/jeff/releases/tag/v0.1.7)\n- [Release notes](/releases/v0.1.7.html)\n<!-- latest-release:end -->
