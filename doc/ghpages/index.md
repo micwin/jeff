@@ -17,4 +17,9 @@ Happy hacking!
 
 - [Download overview](/downloads.html)
 
-<!-- latest-release:start -->\n## Latest Release\n\n- [Download Jeff v0.1.7](https://github.com/micwin/jeff/releases/tag/v0.1.7)\n- [Release notes](/releases/v0.1.7.html)\n<!-- latest-release:end -->
+<!-- latest-release:start -->
+## Latest Release
+
+- [Download Jeff v0.1.8](https://github.com/micwin/jeff/releases/tag/v0.1.8)
+- [Release notes](/releases/v0.1.8.html)
+<!-- latest-release:end -->
