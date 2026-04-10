@@ -1,0 +1,11 @@
+OpenAI Codex v0.46.0 (research preview)
+--------
+workdir: /tmp/codex
+model: gpt-5-codex
+provider: openai
+approval: never
+sandbox: danger-full-access
+reasoning effort: medium
+reasoning summaries: auto
+session id: 0abc1234-89ab-cdef-0123-456789abcdef
+--------
