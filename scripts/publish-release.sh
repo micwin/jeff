@@ -149,7 +149,7 @@ publish_ghpages() {
 
   (cd "$WORKTREE_DIR" && git rm -rf . >/dev/null 2>&1 || true)
   rsync -a --delete "$SITE_DIR"/ "$WORKTREE_DIR"/
-  (cd "$WORKTREE_DIR" && git add --all && git commit -m "Publish site for v$VERSION" && git push origin ghpages)
+  (cd "$WORKTREE_DIR" && git add --all && git commit -m "Publish site for v$RELEASE_VERSION" && git push origin ghpages)
   git worktree remove "$WORKTREE_DIR"
   mark_done ghpages
 }
@@ -159,4 +159,4 @@ push_release_branch
 create_github_release
 publish_ghpages
 
-echo "Release v$VERSION published."
+echo "Release v$RELEASE_VERSION published."
