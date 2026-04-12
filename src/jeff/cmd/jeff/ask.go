@@ -20,7 +20,7 @@ type askOptions struct {
 	question        string
 }
 
-func newAskCmd() *cobra.Command {
+func newCodexAskCmd() *cobra.Command {
 	var opts askOptions
 
 	cmd := &cobra.Command{
@@ -47,7 +47,7 @@ func newAskCmd() *cobra.Command {
 
 func runAsk(ctx *commandContext, opts askOptions) error {
 	if opts.question == "" {
-		return errors.New("missing question – e.g. jeff ask \"What is this directory?\"")
+		return errors.New("missing question – e.g. jeff codex ask \"What is this directory?\"")
 	}
 
 	cfg, err := ctx.loadConfig()
@@ -64,7 +64,7 @@ func runAsk(ctx *commandContext, opts askOptions) error {
 		}
 	}
 	if sessionID == "" {
-		return errors.New("no active session – run 'jeff init' first")
+		return errors.New("no active session – run 'jeff codex init' first")
 	}
 
 	codexBinary := strings.TrimSpace(opts.codexBinary)

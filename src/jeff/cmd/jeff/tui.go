@@ -9,23 +9,23 @@ import (
 	"github.com/spf13/cobra"
 )
 
-func newChatCmd() *cobra.Command {
+func newCodexTuiCmd() *cobra.Command {
 	cmd := &cobra.Command{
-		Use:   "chat",
-		Short: "Start an interactive Codex session",
+		Use:   "tui",
+		Short: "Start an interactive Codex TUI session",
 		Args:  cobra.NoArgs,
 		RunE: func(cmd *cobra.Command, args []string) error {
 			ctx, err := commandContextFrom(cmd)
 			if err != nil {
 				return err
 			}
-			return runChat(ctx)
+			return runTUI(ctx)
 		},
 	}
 	return cmd
 }
 
-func runChat(ctx *commandContext) error {
+func runTUI(ctx *commandContext) error {
 	cfg, err := ctx.loadConfig()
 	if err != nil {
 		return err
@@ -36,7 +36,7 @@ func runChat(ctx *commandContext) error {
 		sessionID = cfg.LastSession
 	}
 	if sessionID == "" {
-		return errors.New("no active session – run 'jeff init' first")
+		return errors.New("no active session – run 'jeff codex init' first")
 	}
 
 	codexBinary := cfg.CodexBinary
@@ -56,7 +56,7 @@ func runChat(ctx *commandContext) error {
 	cmd.Stdin = ctx.stdin
 
 	if err := cmd.Run(); err != nil {
-		return fmt.Errorf("codex chat failed: %w", err)
+		return fmt.Errorf("codex tui failed: %w", err)
 	}
 
 	cfg.RecordSession(strings.TrimSpace(sessionID))

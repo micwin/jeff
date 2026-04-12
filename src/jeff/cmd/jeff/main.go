@@ -28,14 +28,12 @@ func newRootCommand() *cobra.Command {
 Version: %s
 
 Commands:
-  init        Configure a Codex session ID or reuse the last one
-  ask         Ask a question (--session, --codex-binary, --timeout, --show-token-cost; global: --status)
-  chat        Jump into an interactive Codex session
+  codex       Manage Codex integration (init, ask, tui)
   completion  Generate shell completions`, ver)
 
 	cmd := &cobra.Command{
 		Use:           "jeff",
-		Short:         "Command-line assistant backed by Codex",
+		Short:         "Command-line assistant with optional Codex integration",
 		Long:          longDesc,
 		SilenceUsage:  false,
 		SilenceErrors: false,
@@ -50,9 +48,7 @@ Commands:
 	}
 
 	cmd.AddCommand(
-		newInitCmd(),
-		newAskCmd(),
-		newChatCmd(),
+		newCodexCmd(),
 		newCompletionCmd(cmd),
 		newVersionCmd(),
 	)

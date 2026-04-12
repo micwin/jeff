@@ -18,7 +18,7 @@ type initOptions struct {
 	codexBinary string
 }
 
-func newInitCmd() *cobra.Command {
+func newCodexInitCmd() *cobra.Command {
 	var opts initOptions
 
 	cmd := &cobra.Command{
