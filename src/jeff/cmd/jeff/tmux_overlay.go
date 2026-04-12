@@ -99,6 +99,10 @@ func applyTmuxBaseConfig(cfg *config.Config) error {
 		}
 	}
 
+	// Bind Ctrl-T for popup menu
+	_ = runTmux("unbind-key", "-n", "C-t")
+	_ = runTmux("bind-key", "-n", "C-t", "run-shell", "jeff tmux menu show")
+
 	// Ensure an initial value so the bar renders immediately.
 	initial := buildStatusLine(80, cfg.ShellStatus.Layout, "", "", "")
 	tmuxSetUserOption("jeff-status-line", initial)
