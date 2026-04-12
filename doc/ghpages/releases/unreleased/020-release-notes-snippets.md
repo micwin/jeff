@@ -1,0 +1,1 @@
+- chore: add unreleased release-note snippets + prepare-release integration to auto-collect change bullets.

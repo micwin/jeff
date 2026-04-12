@@ -1,1 +1,0 @@
-- feat: allow menu commands prefixed with `!` to run with sudo (`!` alone becomes `sudo su -`).
