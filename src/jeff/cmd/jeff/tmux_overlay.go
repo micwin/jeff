@@ -91,6 +91,9 @@ func applyTmuxBaseConfig(cfg *config.Config) error {
 	if err := runTmux("set-option", "-t", sessionTarget, "status", "on"); err != nil {
 		return err
 	}
+	if err := runTmux("set-option", "-t", sessionTarget, "status-format[0]", "#{@jeff-status-line}"); err != nil {
+		return err
+	}
 	if err := runTmux("set-option", "-t", sessionTarget, "status-position", "bottom"); err != nil {
 		return err
 	}
@@ -288,9 +291,7 @@ func renderTemplateWithShell(template string) (string, error) {
 	if strings.TrimSpace(template) == "" {
 		return "", nil
 	}
-	escaped := strings.ReplaceAll(template, `\`, `\\`)
-	escaped = strings.ReplaceAll(escaped, `"`, `\"`)
-	script := fmt.Sprintf("printf '%%s' \"%s\"", escaped)
+	script := fmt.Sprintf("printf \"%%s\" %s", template)
 	cmd := exec.Command(userShellPath(), "-c", script)
 	out, err := cmd.CombinedOutput()
 	if err != nil {
@@ -347,7 +348,7 @@ func configureCtrlTBinding() error {
 		return err
 	}
 	format := fmt.Sprintf("#{==:#{session_name},%s}", tmuxSessionName)
-	menuCmd := fmt.Sprintf("run-shell %s", shellQuote("TMUX_PANE=#{pane_id} jeff tmux menu show"))
+	popupCmd := fmt.Sprintf("display-popup -w 40%% -h 90%% -x R -E %s", shellQuote("TMUX_PANE=#{pane_id} jeff menu tui --pane '#{pane_id}'"))
 	return runTmux(
 		"bind-key",
 		"-n",
@@ -355,7 +356,7 @@ func configureCtrlTBinding() error {
 		"if-shell",
 		"-F",
 		format,
-		menuCmd,
+		popupCmd,
 		"send-keys C-t",
 	)
 }
