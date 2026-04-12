@@ -153,7 +153,11 @@ func (m *menuModel) View() string {
 		if entry.Type == config.MenuEntryTypeMenu {
 			label += " ▸"
 		}
-		fmt.Fprintf(&b, " %s %-3d %-20s %s\n", cursor, i+1, truncate(label, 20), entry.Command)
+		if entry.Type == config.MenuEntryTypeCommand {
+			fmt.Fprintf(&b, " %s %-3d %-20s\n", cursor, i+1, truncate(label, 20))
+		} else {
+			fmt.Fprintf(&b, " %s %-3d %-20s\n", cursor, i+1, truncate(label, 20))
+		}
 	}
 
 	if len(m.path) > 0 {

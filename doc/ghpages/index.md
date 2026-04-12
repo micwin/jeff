@@ -18,8 +18,15 @@ Happy hacking!
 
 ## Some Highlights
 
-- `Ctrl-T` opens the shortcut popup inside `jeff tmux`; use `jeff menu tui` outside tmux for the same UI.
-- Menu entries now support nested submenus, `a`/`i` expand to commands, `A`/`I` to submenus, and `.. (up)` navigates back.
+- `jeff tmux` opens a tmux integration so you can pair program in your tui editor with your friends
+- `jeff menu` provides an accessible and nestable menu for shell shortcuts
+- `jeff codex tui` opens a long-term codex session
+- `jeff codex ask` enters the codex session for one question only
+- `jeff completion` provides command completion for bash, zsh and fish
+
+
+with , having a easy status bar and a hackable popup menu for custom cli commands (`Ctrl-T`)
+
 
 ## Downloads
 
