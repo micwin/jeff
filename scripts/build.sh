@@ -11,7 +11,9 @@ VERSION_FILE="$REPO_ROOT/src/jeff/internal/version/VERSION"
 DO_COMPILE=1
 DO_DOCS=1
 DO_DEB=1
+DO_INSTALL=0
 DO_CLEAN=0
+DEB_PACKAGE_PATH=""
 
 if [ $# -gt 0 ]; then
 	DO_COMPILE=0
@@ -31,11 +33,17 @@ if [ $# -gt 0 ]; then
 			--deb)
 				DO_DEB=1
 				;;
+			--install)
+				DO_INSTALL=1
+				DO_DEB=1
+				DO_COMPILE=1
+				;;
 			-h|--help)
 				cat <<EOF
-Usage: scripts/build.sh [--compile] [--docs] [--deb]
+Usage: scripts/build.sh [--compile] [--docs] [--deb] [--install]
 Without flags, all sections run (compile, docs placeholder, deb package).
 Providing any flag limits execution to the selected sections.
+Use --install to build and install the generated .deb (implies --deb).
 Use --clean to remove previous build artifacts (can be combined with other flags).
 EOF
 				exit 0
@@ -144,11 +152,32 @@ Priority: optional
 Architecture: $arch
 Maintainer: Unknown <unknown@example.com>
 Description: Jeff CLI assistant packaged for Debian-based systems.
+Depends: tmux
 EOF
 	mkdir -p "$DIST_DIR"
 	output="$DIST_DIR/jeff_${version}_${arch}.deb"
 	log "==> Building deb package $output"
 	dpkg-deb --build "$root" "$output" >/dev/null
+	DEB_PACKAGE_PATH="$output"
+}
+
+install_deb() {
+	pkg_path="$1"
+	if [ -z "$pkg_path" ] || [ ! -f "$pkg_path" ]; then
+		log "==> Cannot install: package $pkg_path not found"
+		exit 1
+	fi
+	if ! command -v dpkg >/dev/null 2>&1; then
+		log "==> dpkg not available; cannot install package"
+		exit 1
+	fi
+	log "==> Installing $pkg_path (requires sudo)"
+	if command -v sudo >/dev/null 2>&1; then
+		sudo dpkg -i "$pkg_path"
+	else
+		log "==> sudo not found; attempting dpkg -i without it"
+		dpkg -i "$pkg_path"
+	fi
 }
 
 bump_version
@@ -173,6 +202,14 @@ if [ "$DO_DEB" -eq 1 ]; then
 		fi
 	fi
 	build_deb
+	if [ "$DO_INSTALL" -eq 1 ]; then
+		if [ -n "$DEB_PACKAGE_PATH" ]; then
+			install_deb "$DEB_PACKAGE_PATH"
+		else
+			log "==> No .deb package built; cannot install."
+			exit 1
+		fi
+	fi
 fi
 
 log "Build complete. Artifacts available in $DIST_DIR"

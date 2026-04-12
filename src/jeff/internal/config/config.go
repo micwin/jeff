@@ -10,19 +10,42 @@ import (
 )
 
 const (
-	appName          = "jeff"
-	configFileName   = "config.json"
-	completionFolder = "completions"
-	defaultCodexBin  = "codex"
+	appName              = "jeff"
+	configFileName       = "config.json"
+	completionFolder     = "completions"
+	defaultCodexBin      = "codex"
+	defaultInterval      = 5
+	defaultLeftCommand   = "$(pwd)"
+	defaultCenterCommand = "$(date '+%H:%M:%S')"
+	defaultRightCommand  = "$(id -un)@$(hostname)"
 )
 
 // Config represents the persisted CLI configuration.
 type Config struct {
-	ActiveSession  string   `json:"active_session"`
-	LastSession    string   `json:"last_session"`
-	SessionHistory []string `json:"session_history,omitempty"`
-	CompletionDir  string   `json:"completion_dir,omitempty"`
-	CodexBinary    string   `json:"codex_binary,omitempty"`
+	ActiveSession  string            `json:"active_session"`
+	LastSession    string            `json:"last_session"`
+	SessionHistory []string          `json:"session_history,omitempty"`
+	CompletionDir  string            `json:"completion_dir,omitempty"`
+	CodexBinary    string            `json:"codex_binary,omitempty"`
+	ShellStatus    ShellStatusConfig `json:"shell_status,omitempty"`
+}
+
+type ShellStatusConfig struct {
+	Left   ShellStatusRegion `json:"left"`
+	Center ShellStatusRegion `json:"center"`
+	Right  ShellStatusRegion `json:"right"`
+	Layout ShellStatusLayout `json:"layout"`
+}
+
+type ShellStatusRegion struct {
+	Command  string `json:"command"`
+	Interval int    `json:"interval"`
+}
+
+type ShellStatusLayout struct {
+	Left   int `json:"left"`
+	Center int `json:"center"`
+	Right  int `json:"right"`
 }
 
 // Store keeps configuration on disk.
@@ -72,6 +95,7 @@ func (s *Store) Load() (*Config, error) {
 	data, err := os.ReadFile(s.configPath)
 	if errors.Is(err, os.ErrNotExist) {
 		cfg := defaultConfig()
+		cfg.ensureShellDefaults()
 		return cfg, nil
 	}
 	if err != nil {
@@ -83,9 +107,7 @@ func (s *Store) Load() (*Config, error) {
 		return nil, fmt.Errorf("parse config: %w", err)
 	}
 
-	if cfg.CodexBinary == "" {
-		cfg.CodexBinary = defaultCodexBin
-	}
+	cfg.applyDefaults()
 
 	return &cfg, nil
 }
@@ -96,9 +118,7 @@ func (s *Store) Save(cfg *Config) error {
 		return errors.New("nil config")
 	}
 
-	if cfg.CodexBinary == "" {
-		cfg.CodexBinary = defaultCodexBin
-	}
+	cfg.applyDefaults()
 
 	if err := os.MkdirAll(s.dir, 0o755); err != nil {
 		return fmt.Errorf("create config dir: %w", err)
@@ -133,6 +153,70 @@ func (c *Config) RecordSession(session string) {
 func defaultConfig() *Config {
 	return &Config{
 		CodexBinary: defaultCodexBin,
+		ShellStatus: defaultShellStatus(),
+	}
+}
+
+func defaultShellStatus() ShellStatusConfig {
+	return ShellStatusConfig{
+		Left: ShellStatusRegion{
+			Command:  defaultLeftCommand,
+			Interval: defaultInterval,
+		},
+		Center: ShellStatusRegion{
+			Command:  defaultCenterCommand,
+			Interval: defaultInterval,
+		},
+		Right: ShellStatusRegion{
+			Command:  defaultRightCommand,
+			Interval: defaultInterval,
+		},
+		Layout: ShellStatusLayout{
+			Left:   3,
+			Center: 4,
+			Right:  3,
+		},
+	}
+}
+
+func DefaultShellStatusConfig() ShellStatusConfig {
+	return defaultShellStatus()
+}
+
+func (c *Config) applyDefaults() {
+	if c.CodexBinary == "" {
+		c.CodexBinary = defaultCodexBin
+	}
+	c.ensureShellDefaults()
+}
+
+func (c *Config) ensureShellDefaults() {
+	if c.ShellStatus.Left.Command == "" {
+		c.ShellStatus.Left.Command = defaultLeftCommand
+	}
+	if c.ShellStatus.Left.Interval <= 0 {
+		c.ShellStatus.Left.Interval = defaultInterval
+	}
+	if c.ShellStatus.Center.Command == "" {
+		c.ShellStatus.Center.Command = defaultCenterCommand
+	}
+	if c.ShellStatus.Center.Interval <= 0 {
+		c.ShellStatus.Center.Interval = defaultInterval
+	}
+	if c.ShellStatus.Right.Command == "" {
+		c.ShellStatus.Right.Command = defaultRightCommand
+	}
+	if c.ShellStatus.Right.Interval <= 0 {
+		c.ShellStatus.Right.Interval = defaultInterval
+	}
+	if c.ShellStatus.Layout.Left <= 0 {
+		c.ShellStatus.Layout.Left = 3
+	}
+	if c.ShellStatus.Layout.Center <= 0 {
+		c.ShellStatus.Layout.Center = 4
+	}
+	if c.ShellStatus.Layout.Right <= 0 {
+		c.ShellStatus.Layout.Right = 3
 	}
 }
 

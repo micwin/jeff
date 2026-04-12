@@ -25,14 +25,14 @@ _jeff_completion() {
     COMPREPLY=()
     cur="${COMP_WORDS[COMP_CWORD]}"
     if [[ ${COMP_CWORD} -eq 1 ]]; then
-        COMPREPLY=( $(compgen -W "codex completion help" -- "$cur") )
+        COMPREPLY=( $(compgen -W "codex tmux completion help" -- "$cur") )
         return 0
     fi
 
     case "${COMP_WORDS[1]}" in
         codex)
             if [[ ${COMP_CWORD} -eq 2 ]]; then
-        COMPREPLY=( $(compgen -W "init ask tui" -- "$cur") )
+                COMPREPLY=( $(compgen -W "init ask tui" -- "$cur") )
                 return 0
             fi
             case "${COMP_WORDS[2]}" in
@@ -48,6 +48,12 @@ _jeff_completion() {
                 *)
                     ;;
             esac
+            ;;
+        tmux)
+            if [[ ${COMP_CWORD} -eq 2 ]]; then
+                COMPREPLY=( $(compgen -W "set-status-left set-status-center set-status-right set-layout set-interval" -- "$cur") )
+                return 0
+            fi
             ;;
         completion)
             if [[ ${COMP_CWORD} -eq 2 ]]; then
@@ -69,6 +75,7 @@ _jeff() {
   local -a commands
   commands=(
     'codex:Codex integration commands'
+    'tmux:Jeff tmux overlay commands'
     'completion:Generate completions'
     'help:Show help'
   )
@@ -105,6 +112,12 @@ _jeff() {
           _values 'codex command' init ask tui
           ;;
       esac
+      ;;
+    tmux)
+      if (( CURRENT == 3 )); then
+        _values 'tmux command' set-status-left set-status-center set-status-right set-layout set-interval
+        return
+      fi
       ;;
     completion)
       if (( CURRENT == 3 )); then
@@ -147,17 +160,40 @@ function __jeff_using_codex_subcommand
     return 1
 end
 
+function __jeff_using_tmux_subcommand
+    set -l cmd (commandline -opc)
+    if test (count $cmd) -ge 3
+        if test $cmd[2] = tmux
+            if test $cmd[3] = $argv[1]
+                return 0
+            end
+        end
+    end
+    return 1
+end
+
 complete -c jeff -n '__fish_use_subcommand' -a 'codex' -d 'Codex commands'
+complete -c jeff -n '__fish_use_subcommand' -a 'tmux' -d 'tmux overlay'
 complete -c jeff -n '__fish_use_subcommand' -a 'completion' -d 'Generate completions'
 complete -c jeff -n '__fish_use_subcommand' -a 'help' -d 'Show help'
 
 complete -c jeff -n '__jeff_using_command codex' -a 'init' -d 'Configure Codex session'
 complete -c jeff -n '__jeff_using_command codex' -a 'ask' -d 'Ask Codex'
 complete -c jeff -n '__jeff_using_command codex' -a 'tui' -d 'Interactive session'
+complete -c jeff -n '__jeff_using_command tmux' -a 'set-status-left' -d 'Set left command'
+complete -c jeff -n '__jeff_using_command tmux' -a 'set-status-center' -d 'Set center command'
+complete -c jeff -n '__jeff_using_command tmux' -a 'set-status-right' -d 'Set right command'
+complete -c jeff -n '__jeff_using_command tmux' -a 'set-layout' -d 'Set layout ratios'
+complete -c jeff -n '__jeff_using_command tmux' -a 'set-interval' -d 'Set refresh intervals'
 
 complete -c jeff -n '__jeff_using_codex_subcommand init' -l session -d 'Set session id' -r
 complete -c jeff -n '__jeff_using_codex_subcommand init' -l last-session -d 'Reuse last session'
 complete -c jeff -n '__jeff_using_codex_subcommand init' -l codex-binary -d 'Codex CLI path' -r
+complete -c jeff -n '__jeff_using_tmux_subcommand set-status-left' -f
+complete -c jeff -n '__jeff_using_tmux_subcommand set-status-center' -f
+complete -c jeff -n '__jeff_using_tmux_subcommand set-status-right' -f
+complete -c jeff -n '__jeff_using_tmux_subcommand set-layout' -f
+complete -c jeff -n '__jeff_using_tmux_subcommand set-interval' -f
 
 complete -c jeff -n '__jeff_using_codex_subcommand ask' -l session -d 'Override session id' -r
 complete -c jeff -n '__jeff_using_codex_subcommand ask' -l codex-binary -d 'Codex CLI path' -r
