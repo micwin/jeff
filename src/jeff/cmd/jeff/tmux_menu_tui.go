@@ -13,6 +13,18 @@ import (
 	"jeff/internal/config"
 )
 
+type menuMode int
+
+const (
+	modeList menuMode = iota
+	modeAddCommand
+	modeAddLabel
+	modeEditCommand
+	modeEditLabel
+	modeConfirmDelete
+	modeMove
+)
+
 func newMenuTuiCmd() *cobra.Command {
 	var paneID string
 	cmd := &cobra.Command{
@@ -27,12 +39,13 @@ func newMenuTuiCmd() *cobra.Command {
 			if target == "" {
 				target = os.Getenv("TMUX_PANE")
 			}
-			cfg, err := ctx.loadConfig()
+
+			entries, err := ctx.loadMenuEntries()
 			if err != nil {
 				return err
 			}
 
-			return runMenuTui(ctx, target, cfg.TmuxMenu)
+			return runMenuTui(ctx, target, entries)
 		},
 	}
 	cmd.Flags().StringVar(&paneID, "pane", "", "tmux pane id (internal)")
@@ -40,49 +53,18 @@ func newMenuTuiCmd() *cobra.Command {
 	return cmd
 }
 
-type menuMode int
-
-const (
-	modeList menuMode = iota
-	modeAddLabel
-	modeAddCommand
-	modeEditLabel
-	modeEditCommand
-	modeConfirmDelete
-	modeMove
-)
-
-type menuModel struct {
-	ctx        *commandContext
-	paneID     string
-	entries    []config.TmuxMenuEntry
-	selected   int
-	mode       menuMode
-	textInput  textinput.Model
-	pending    config.TmuxMenuEntry
-	pendingIdx int
-
-	moveOriginal    []config.TmuxMenuEntry
-	moveOriginalIdx int
-
-	statusMessage string
-	err           error
-	runCommand    string
-}
-
 func runMenuTui(ctx *commandContext, paneID string, entries []config.TmuxMenuEntry) error {
 	model := newMenuModel(ctx, paneID, entries)
-	p := tea.NewProgram(model, tea.WithAltScreen())
-	final, err := p.Run()
+	program := tea.NewProgram(model, tea.WithAltScreen())
+	final, err := program.Run()
 	if err != nil {
 		return err
 	}
-	result, ok := final.(*menuModel)
-	if !ok {
-		return nil
-	}
-	if result.runCommand != "" {
-		return runMenuCommand(ctx, paneID, result.runCommand)
+
+	if result, ok := final.(*menuModel); ok {
+		if result.runCommand != "" {
+			return runMenuCommand(ctx, paneID, result.runCommand)
+		}
 	}
 	return nil
 }
@@ -98,23 +80,43 @@ func runMenuCommand(ctx *commandContext, paneID, command string) error {
 		cmd.Stderr = ctx.stderr
 		return cmd.Run()
 	}
-	return runTmux("run-shell", "-t", paneID, command)
+
+	return runTmux("send-keys", "-t", paneID, command, "C-m")
+}
+
+type menuModel struct {
+	ctx      *commandContext
+	paneID   string
+	entries  []config.TmuxMenuEntry
+	path     []int
+	selected int
+
+	mode          menuMode
+	textInput     textinput.Model
+	pending       config.TmuxMenuEntry
+	pendingIdx    int
+	pendingType   string
+	labelOptional bool
+
+	moveOriginal    []config.TmuxMenuEntry
+	moveOriginalIdx int
+
+	statusMessage string
+	err           error
+	runCommand    string
 }
 
 func newMenuModel(ctx *commandContext, paneID string, entries []config.TmuxMenuEntry) *menuModel {
-	cloned := append([]config.TmuxMenuEntry(nil), entries...)
 	return &menuModel{
 		ctx:      ctx,
 		paneID:   paneID,
-		entries:  cloned,
+		entries:  cloneEntries(entries),
 		selected: 0,
 		mode:     modeList,
 	}
 }
 
-func (m *menuModel) Init() tea.Cmd {
-	return nil
-}
+func (m *menuModel) Init() tea.Cmd { return nil }
 
 func (m *menuModel) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 	switch msg := msg.(type) {
@@ -127,59 +129,76 @@ func (m *menuModel) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 
 func (m *menuModel) View() string {
 	var b strings.Builder
-	if m.paneID != "" {
-		fmt.Fprintf(&b, "Jeff shortcuts (pane %s)\n\n", m.paneID)
-	} else {
+	if len(m.path) == 0 {
 		b.WriteString("Jeff shortcuts\n\n")
+	} else {
+		b.WriteString(fmt.Sprintf("Jeff shortcuts (%s)\n\n", m.breadcrumb()))
 	}
 
-	if len(m.entries) == 0 {
+	entries := m.currentEntriesVal()
+	if len(entries) == 0 {
 		b.WriteString("  (no entries yet)\n")
 	}
 
-	for i, entry := range m.entries {
+	for i, entry := range entries {
 		cursor := " "
-		if i == m.selected && len(m.entries) > 0 {
+		if i == m.selected && !m.isUpSelected() {
 			if m.mode == modeMove {
 				cursor = "◉"
 			} else {
 				cursor = ">"
 			}
 		}
-		label := entry.Label
-		if label == "" {
-			label = entry.Command
+		label := labelOrCommand(entry.Label, entry.Command)
+		if entry.Type == config.MenuEntryTypeMenu {
+			label += " ▸"
 		}
 		fmt.Fprintf(&b, " %s %-3d %-20s %s\n", cursor, i+1, truncate(label, 20), entry.Command)
+	}
+
+	if len(m.path) > 0 {
+		cursor := " "
+		if m.isUpSelected() {
+			cursor = ">"
+		}
+		b.WriteString(fmt.Sprintf(" %s     .. (up)\n", cursor))
 	}
 
 	b.WriteString("\n")
 
 	switch m.mode {
-	case modeAddLabel:
-		b.WriteString("Add entry — Label (optional): " + m.textInput.View() + "\n")
-		b.WriteString("Enter to continue • Esc cancels\n")
 	case modeAddCommand:
 		b.WriteString("Add entry — Command: " + m.textInput.View() + "\n")
-		b.WriteString("Enter to save • Esc cancels\n")
-	case modeEditLabel:
-		b.WriteString("Edit entry — Label (optional): " + m.textInput.View() + "\n")
 		b.WriteString("Enter to continue • Esc cancels\n")
+	case modeAddLabel:
+		labelPrompt := "Add entry — Label"
+		if m.labelOptional {
+			labelPrompt += " (optional)"
+		}
+		b.WriteString(labelPrompt + ": " + m.textInput.View() + "\n")
+		b.WriteString("Enter to save • Esc cancels\n")
 	case modeEditCommand:
 		b.WriteString("Edit entry — Command: " + m.textInput.View() + "\n")
+		b.WriteString("Enter to continue • Esc cancels\n")
+	case modeEditLabel:
+		labelPrompt := "Edit entry — Label"
+		if m.labelOptional {
+			labelPrompt += " (optional)"
+		}
+		b.WriteString(labelPrompt + ": " + m.textInput.View() + "\n")
 		b.WriteString("Enter to save • Esc cancels\n")
 	case modeConfirmDelete:
 		if entry := m.currentEntry(); entry != nil {
 			fmt.Fprintf(&b, "Delete %q? y/N (Esc to cancel)\n", entry.Label)
 		}
 	case modeMove:
-		b.WriteString("Move mode: ↑/↓ or j/k to reposition • Enter to confirm • Esc cancels\n")
+		b.WriteString("Move mode: ↑/↓ move • Enter confirm • Esc cancels\n")
 	default:
-		b.WriteString("Keys: ↑/↓ or j/k navigate • Enter run • a append • i insert • e edit • d delete • m move • Esc/q close\n")
+		b.WriteString("Keys: ↑/↓ move • Enter run/open • a append cmd • i insert cmd • A append menu • I insert menu • e edit • d delete • m move • Esc/q close\n")
 	}
 
 	if m.err != nil {
-		fmt.Fprintf(&b, "\nError: %s\n", m.err.Error())
+		fmt.Fprintf(&b, "\nError: %s\n", m.err)
 	} else if m.statusMessage != "" {
 		fmt.Fprintf(&b, "\n%s\n", m.statusMessage)
 	}
@@ -189,7 +208,7 @@ func (m *menuModel) View() string {
 
 func (m *menuModel) handleKey(msg tea.KeyMsg) (tea.Model, tea.Cmd) {
 	switch m.mode {
-	case modeAddLabel, modeAddCommand, modeEditLabel, modeEditCommand:
+	case modeAddCommand, modeAddLabel, modeEditCommand, modeEditLabel:
 		return m.handleInputKey(msg)
 	case modeConfirmDelete:
 		return m.handleConfirmKey(msg)
@@ -209,12 +228,17 @@ func (m *menuModel) handleListKey(msg tea.KeyMsg) (tea.Model, tea.Cmd) {
 	case "down", "j":
 		m.moveSelection(1, false)
 	case "enter":
-		m.triggerCurrentEntry()
-		return m, tea.Quit
+		if m.activateSelection() {
+			return m, tea.Quit
+		}
 	case "a":
-		m.beginAppend()
+		m.beginAppendCommand()
 	case "i":
-		m.beginInsert()
+		m.beginInsertCommand()
+	case "A":
+		m.beginAppendMenu()
+	case "I":
+		m.beginInsertMenu()
 	case "e":
 		m.beginEdit()
 	case "d":
@@ -233,29 +257,29 @@ func (m *menuModel) handleInputKey(msg tea.KeyMsg) (tea.Model, tea.Cmd) {
 		return m, nil
 	case tea.KeyEnter:
 		value := strings.TrimSpace(m.textInput.Value())
-		requireValue := true
-		if m.mode == modeAddLabel || m.mode == modeEditLabel {
-			requireValue = false
-		}
-		if value == "" && requireValue {
+		requireLabel := (m.mode == modeAddLabel && !m.labelOptional) || m.mode == modeEditLabel
+		requireCommand := m.mode == modeAddCommand || m.mode == modeEditCommand
+		if value == "" && (requireLabel || requireCommand) {
 			m.statusMessage = "Value cannot be empty"
 			return m, nil
 		}
 		switch m.mode {
-		case modeAddLabel:
-			m.pending.Label = value
-			m.mode = modeAddCommand
-			m.textInput = newTextInput("", "Command")
 		case modeAddCommand:
 			m.pending.Command = value
-			m.finishAdd()
-		case modeEditLabel:
+			m.labelOptional = true
+			m.mode = modeAddLabel
+			m.textInput = newTextInput("", "Label (optional)")
+		case modeAddLabel:
 			m.pending.Label = value
-			m.mode = modeEditCommand
-			m.textInput = newTextInput(m.pending.Command, "Command")
+			m.finishAddEntry()
 		case modeEditCommand:
 			m.pending.Command = value
-			m.finishEdit()
+			m.labelOptional = true
+			m.mode = modeEditLabel
+			m.textInput = newTextInput(m.pending.Label, "Label (optional)")
+		case modeEditLabel:
+			m.pending.Label = value
+			m.finishEditEntry()
 		}
 		return m, nil
 	default:
@@ -287,69 +311,80 @@ func (m *menuModel) handleMoveKey(msg tea.KeyMsg) (tea.Model, tea.Cmd) {
 		m.statusMessage = "Entry reordered"
 		m.persistEntries()
 	case "esc":
-		m.entries = append([]config.TmuxMenuEntry(nil), m.moveOriginal...)
+		m.entries = cloneEntries(m.moveOriginal)
 		m.selected = m.moveOriginalIdx
 		m.mode = modeList
 		m.statusMessage = "Move canceled"
+		m.persistEntries()
 	}
 	return m, nil
 }
 
-func (m *menuModel) beginAppend() {
-	m.beginAddAt(len(m.entries))
+func (m *menuModel) beginAppendCommand() {
+	idx := len(m.currentEntriesVal())
+	m.beginAddEntry(idx, config.MenuEntryTypeCommand)
 }
 
-func (m *menuModel) beginInsert() {
-	idx := m.selected
-	if idx < 0 || idx > len(m.entries) {
-		idx = len(m.entries)
-	}
-	m.beginAddAt(idx)
+func (m *menuModel) beginInsertCommand() {
+	m.beginAddEntry(m.insertIndex(), config.MenuEntryTypeCommand)
 }
 
-func (m *menuModel) beginAddAt(idx int) {
+func (m *menuModel) beginAppendMenu() {
+	idx := len(m.currentEntriesVal())
+	m.beginAddEntry(idx, config.MenuEntryTypeMenu)
+}
+
+func (m *menuModel) beginInsertMenu() {
+	m.beginAddEntry(m.insertIndex(), config.MenuEntryTypeMenu)
+}
+
+func (m *menuModel) beginAddEntry(idx int, entryType string) {
+	slice := m.currentEntries()
 	if idx < 0 {
 		idx = 0
 	}
-	if idx > len(m.entries) {
-		idx = len(m.entries)
+	if idx > len(*slice) {
+		idx = len(*slice)
 	}
-	m.pendingIdx = idx
 	m.pending = config.TmuxMenuEntry{}
-	m.textInput = newTextInput("", "New label (optional)")
-	m.mode = modeAddLabel
+	m.pendingIdx = idx
+	m.pendingType = entryType
+	if entryType == config.MenuEntryTypeCommand {
+		m.mode = modeAddCommand
+		m.textInput = newTextInput("", "Command")
+	} else {
+		m.labelOptional = false
+		m.mode = modeAddLabel
+		m.textInput = newTextInput("", "New label")
+	}
 	m.statusMessage = ""
 }
 
-func (m *menuModel) finishAdd() {
+func (m *menuModel) finishAddEntry() {
 	entry := m.pending
-	if entry.Command == "" {
-		m.statusMessage = "Command required"
-		return
-	}
-	if entry.Label == "" {
-		entry.Label = entry.Command
+	entry.Type = m.pendingType
+	if entry.Type == config.MenuEntryTypeMenu {
+		if strings.TrimSpace(entry.Label) == "" {
+			m.statusMessage = "Label required for menu"
+			return
+		}
+		entry.Command = ""
+	} else {
+		if entry.Command == "" {
+			m.statusMessage = "Command required"
+			return
+		}
+		if entry.Label == "" {
+			entry.Label = entry.Command
+		}
 	}
 
-	cfg, err := m.ctx.loadConfig()
-	if err != nil {
-		m.err = err
-		return
-	}
-	entry.ID = generateMenuID(entry.Label, cfg)
-
-	idx := m.pendingIdx
-	if idx < 0 {
-		idx = 0
-	}
-	if idx > len(m.entries) {
-		idx = len(m.entries)
-	}
-	m.entries = insertEntry(m.entries, entry, idx)
-	m.selected = idx
+	entry.ID = generateMenuID(labelOrCommand(entry.Label, entry.Command), m.entries)
+	insertMenuEntry(m.currentEntries(), entry, m.pendingIdx)
+	m.selected = m.pendingIdx
 	m.mode = modeList
-	m.persistEntries()
 	m.statusMessage = fmt.Sprintf("Added %s", entry.Label)
+	m.persistEntries()
 }
 
 func (m *menuModel) beginEdit() {
@@ -360,33 +395,50 @@ func (m *menuModel) beginEdit() {
 	}
 	m.pendingIdx = m.selected
 	m.pending = *entry
-	m.textInput = newTextInput(entry.Label, "Label")
-	m.mode = modeEditLabel
+	m.pendingType = entry.Type
+	if entry.Type == config.MenuEntryTypeCommand {
+		m.labelOptional = true
+		m.mode = modeEditCommand
+		m.textInput = newTextInput(entry.Command, "Command")
+	} else {
+		m.labelOptional = false
+		m.mode = modeEditLabel
+		m.textInput = newTextInput(entry.Label, "Label")
+	}
 	m.statusMessage = ""
 }
 
-func (m *menuModel) finishEdit() {
-	if m.pendingIdx < 0 || m.pendingIdx >= len(m.entries) {
+func (m *menuModel) finishEditEntry() {
+	entries := m.currentEntries()
+	if m.pendingIdx < 0 || m.pendingIdx >= len(*entries) {
 		return
 	}
-	if m.pending.Command == "" {
-		m.statusMessage = "Command required"
-		return
+	if m.pendingType == config.MenuEntryTypeCommand {
+		if m.pending.Command == "" {
+			m.statusMessage = "Command required"
+			return
+		}
+		if m.pending.Label == "" {
+			m.pending.Label = m.pending.Command
+		}
+	} else {
+		if strings.TrimSpace(m.pending.Label) == "" {
+			m.statusMessage = "Label required for menu"
+			return
+		}
+		m.pending.Command = ""
 	}
-	if m.pending.Label == "" {
-		m.pending.Label = m.pending.Command
-	}
-	m.entries[m.pendingIdx].Label = m.pending.Label
-	m.entries[m.pendingIdx].Command = m.pending.Command
+	(*entries)[m.pendingIdx].Label = m.pending.Label
+	(*entries)[m.pendingIdx].Command = m.pending.Command
+	(*entries)[m.pendingIdx].Type = m.pendingType
 	m.mode = modeList
-	m.selected = m.pendingIdx
-	m.persistEntries()
 	m.statusMessage = fmt.Sprintf("Updated %s", m.pending.Label)
+	m.persistEntries()
 }
 
 func (m *menuModel) beginDelete() {
 	if m.currentEntry() == nil {
-		m.statusMessage = "Menu is empty"
+		m.statusMessage = "Nothing to delete"
 		return
 	}
 	m.mode = modeConfirmDelete
@@ -394,33 +446,38 @@ func (m *menuModel) beginDelete() {
 }
 
 func (m *menuModel) deleteSelected() {
-	if len(m.entries) == 0 || m.selected < 0 || m.selected >= len(m.entries) {
+	entries := m.currentEntries()
+	if m.currentEntry() == nil {
 		m.mode = modeList
 		return
 	}
-	id := m.entries[m.selected].ID
-	m.entries = append(m.entries[:m.selected], m.entries[m.selected+1:]...)
-	if m.selected >= len(m.entries) && m.selected > 0 {
+	removeMenuEntry(entries, m.selected)
+	if m.selected >= len(*entries) && m.selected > 0 {
 		m.selected--
 	}
 	m.mode = modeList
+	m.statusMessage = "Entry removed"
 	m.persistEntries()
-	m.statusMessage = fmt.Sprintf("Deleted %s", id)
 }
 
 func (m *menuModel) beginMove() {
-	if len(m.entries) == 0 {
-		m.statusMessage = "Menu is empty"
+	if m.currentEntry() == nil {
+		m.statusMessage = "Nothing to move"
 		return
 	}
-	m.moveOriginal = append([]config.TmuxMenuEntry(nil), m.entries...)
+	m.moveOriginal = cloneEntries(m.entries)
 	m.moveOriginalIdx = m.selected
 	m.mode = modeMove
 	m.statusMessage = ""
 }
 
 func (m *menuModel) moveSelection(delta int, moveEntry bool) {
-	if len(m.entries) == 0 {
+	levelEntries := m.currentEntriesVal()
+	max := len(levelEntries)
+	if len(m.path) > 0 {
+		max++
+	}
+	if max == 0 {
 		m.selected = 0
 		return
 	}
@@ -428,78 +485,173 @@ func (m *menuModel) moveSelection(delta int, moveEntry bool) {
 	if newIdx < 0 {
 		newIdx = 0
 	}
-	if newIdx >= len(m.entries) {
-		newIdx = len(m.entries) - 1
+	if newIdx >= max {
+		newIdx = max - 1
 	}
-	if moveEntry && newIdx != m.selected {
-		entry := m.entries[m.selected]
-		m.entries = append(m.entries[:m.selected], m.entries[m.selected+1:]...)
-		if newIdx > m.selected {
-			newIdx--
+	if moveEntry {
+		if len(levelEntries) == 0 {
+			return
+		}
+		if newIdx >= len(levelEntries) {
+			newIdx = len(levelEntries) - 1
 		}
 		if newIdx < 0 {
 			newIdx = 0
 		}
-		if newIdx > len(m.entries) {
-			newIdx = len(m.entries)
-		}
-		m.entries = insertEntry(m.entries, entry, newIdx)
+		moveMenuEntry(m.currentEntries(), m.selected, newIdx)
+		m.persistEntries()
 	}
 	m.selected = newIdx
 }
 
-func (m *menuModel) triggerCurrentEntry() {
+func (m *menuModel) activateSelection() bool {
+	if m.isUpSelected() {
+		if len(m.path) > 0 {
+			m.path = m.path[:len(m.path)-1]
+			m.selected = 0
+		}
+		return false
+	}
 	entry := m.currentEntry()
 	if entry == nil {
-		m.runCommand = ""
-	} else {
-		m.runCommand = entry.Command
+		return false
 	}
+	if entry.Type == config.MenuEntryTypeMenu {
+		ensureChildrenSlice(entry)
+		m.path = append(m.path, m.selected)
+		m.selected = 0
+		return false
+	}
+	m.runCommand = entry.Command
+	return true
+}
+
+func (m *menuModel) currentEntries() *[]config.TmuxMenuEntry {
+	entries := &m.entries
+	for _, idx := range m.path {
+		if idx < 0 || idx >= len(*entries) {
+			return entries
+		}
+		child := &(*entries)[idx]
+		ensureChildrenSlice(child)
+		entries = &child.Children
+	}
+	return entries
+}
+
+func (m *menuModel) currentEntriesVal() []config.TmuxMenuEntry {
+	return *m.currentEntries()
 }
 
 func (m *menuModel) currentEntry() *config.TmuxMenuEntry {
-	if len(m.entries) == 0 || m.selected < 0 || m.selected >= len(m.entries) {
+	entries := m.currentEntries()
+	if m.selected < 0 || m.selected >= len(*entries) {
 		return nil
 	}
-	return &m.entries[m.selected]
+	return &(*entries)[m.selected]
+}
+
+func (m *menuModel) isUpSelected() bool {
+	return len(m.path) > 0 && m.selected == len(m.currentEntriesVal())
+}
+
+func (m *menuModel) insertIndex() int {
+	if m.isUpSelected() {
+		return len(m.currentEntriesVal())
+	}
+	return m.selected
+}
+
+func (m *menuModel) breadcrumb() string {
+	labels := []string{}
+	entries := &m.entries
+	for _, idx := range m.path {
+		if idx < 0 || idx >= len(*entries) {
+			break
+		}
+		entry := &(*entries)[idx]
+		labels = append(labels, labelOrCommand(entry.Label, entry.Command))
+		ensureChildrenSlice(entry)
+		entries = &entry.Children
+	}
+	return strings.Join(labels, " / ")
 }
 
 func (m *menuModel) persistEntries() {
-	cfg, err := m.ctx.loadConfig()
-	if err != nil {
-		m.err = err
-		return
-	}
-	cfg.TmuxMenu = append([]config.TmuxMenuEntry(nil), m.entries...)
-	if err := m.ctx.saveConfig(cfg); err != nil {
+	if err := m.ctx.saveMenuEntries(cloneEntries(m.entries)); err != nil {
 		m.err = err
 	}
 }
 
-func newTextInput(value, placeholder string) textinput.Model {
-	input := textinput.New()
-	input.Prompt = ""
-	input.Placeholder = placeholder
-	input.CharLimit = 256
-	input.SetValue(value)
-	input.Focus()
-	return input
+func ensureChildrenSlice(entry *config.TmuxMenuEntry) {
+	if entry.Children == nil {
+		entry.Children = []config.TmuxMenuEntry{}
+	}
 }
 
-func insertEntry(entries []config.TmuxMenuEntry, entry config.TmuxMenuEntry, idx int) []config.TmuxMenuEntry {
+func insertMenuEntry(entries *[]config.TmuxMenuEntry, entry config.TmuxMenuEntry, idx int) {
+	slice := *entries
 	if idx < 0 {
 		idx = 0
 	}
-	if idx > len(entries) {
-		idx = len(entries)
+	if idx > len(slice) {
+		idx = len(slice)
 	}
-	result := append(entries[:idx], append([]config.TmuxMenuEntry{entry}, entries[idx:]...)...)
-	return result
+	slice = append(slice, config.TmuxMenuEntry{})
+	copy(slice[idx+1:], slice[idx:])
+	slice[idx] = entry
+	*entries = slice
+}
+
+func removeMenuEntry(entries *[]config.TmuxMenuEntry, idx int) {
+	slice := *entries
+	if idx < 0 || idx >= len(slice) {
+		return
+	}
+	*entries = append(slice[:idx], slice[idx+1:]...)
+}
+
+func moveMenuEntry(entries *[]config.TmuxMenuEntry, from, to int) {
+	slice := *entries
+	if from < 0 || from >= len(slice) || to < 0 || to >= len(slice) {
+		return
+	}
+	entry := slice[from]
+	slice = append(slice[:from], slice[from+1:]...)
+	if to > len(slice) {
+		to = len(slice)
+	}
+	slice = append(slice[:to], append([]config.TmuxMenuEntry{entry}, slice[to:]...)...)
+	*entries = slice
+}
+
+func cloneEntries(entries []config.TmuxMenuEntry) []config.TmuxMenuEntry {
+	cloned := make([]config.TmuxMenuEntry, len(entries))
+	for i := range entries {
+		cloned[i] = entries[i]
+		if len(entries[i].Children) > 0 {
+			cloned[i].Children = cloneEntries(entries[i].Children)
+		}
+	}
+	return cloned
 }
 
 func truncate(text string, limit int) string {
 	if len(text) <= limit {
 		return text
 	}
+	if limit <= 1 {
+		return text[:limit]
+	}
 	return text[:limit-1] + "…"
+}
+
+func newTextInput(value, placeholder string) textinput.Model {
+	ti := textinput.New()
+	ti.Prompt = ""
+	ti.Placeholder = placeholder
+	ti.CharLimit = 256
+	ti.SetValue(value)
+	ti.Focus()
+	return ti
 }
