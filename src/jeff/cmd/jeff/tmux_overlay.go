@@ -84,28 +84,22 @@ func runTmuxOverlay(ctx *commandContext) error {
 }
 
 func applyTmuxBaseConfig(cfg *config.Config) error {
-	baseCommands := [][]string{
-		{"start-server"},
-		{"set-option", "-gq", "status", "on"},
-		{"set-option", "-gq", "status-position", "bottom"},
-		{"set-option", "-gq", "status-left", ""},
-		{"set-option", "-gq", "status-right", ""},
-		{"set-option", "-gq", "status-interval", "1"},
-		{"set-option", "-gq", "status-format[0]", "#{@jeff-status-line}"},
+	if err := runTmux("start-server"); err != nil {
+		return err
 	}
-	for _, args := range baseCommands {
-		if err := runTmux(args...); err != nil {
-			return err
-		}
+	sessionTarget := fmt.Sprintf("%s:", tmuxSessionName)
+	if err := runTmux("set-option", "-t", sessionTarget, "status", "on"); err != nil {
+		return err
 	}
-
-	// Bind Ctrl-T for popup menu
-	_ = runTmux("unbind-key", "-n", "C-t")
-	_ = runTmux("bind-key", "-n", "C-t", "run-shell", "jeff tmux menu show")
+	if err := runTmux("set-option", "-t", sessionTarget, "status-position", "bottom"); err != nil {
+		return err
+	}
+	_ = runTmux("unbind-key", "-T", "root", "-t", tmuxSessionName, "C-t")
+	_ = runTmux("bind-key", "-T", "root", "-n", "C-t", "-t", tmuxSessionName, "run-shell", "jeff tmux menu show")
 
 	// Ensure an initial value so the bar renders immediately.
 	initial := buildStatusLine(80, cfg.ShellStatus.Layout, "", "", "")
-	tmuxSetUserOption("jeff-status-line", initial)
+	tmuxSetSessionOption("jeff-status-line", initial)
 	return nil
 }
 
@@ -165,7 +159,7 @@ func statusAggregator(ctx context.Context, store *config.Store, updates <-chan s
 		}
 		layout := cfg.ShellStatus.Layout
 		line := buildStatusLine(width, layout, left, center, right)
-		tmuxSetUserOption("jeff-status-line", line)
+		tmuxSetSessionOption("jeff-status-line", line)
 		tmuxRefreshClient()
 	}
 
@@ -308,8 +302,9 @@ func renderTemplateWithShell(template string) (string, error) {
 	return string(out), nil
 }
 
-func tmuxSetUserOption(name, value string) {
-	_ = runTmux("set-option", "-gq", "@"+name, value)
+func tmuxSetSessionOption(name, value string) {
+	target := fmt.Sprintf("%s:", tmuxSessionName)
+	_ = runTmux("set-option", "-t", target, "@"+name, value)
 }
 
 func tmuxRefreshClient() {
