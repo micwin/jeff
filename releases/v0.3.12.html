@@ -3,20 +3,20 @@
   <meta charset="utf-8">
   <meta http-equiv="X-UA-Compatible" content="IE=edge">
   <meta name="viewport" content="width=device-width, initial-scale=1"><!-- Begin Jekyll SEO tag v2.8.0 -->
-<title>Jeff – Your Friendly CLI-pal | Jeff CLI</title>
+<title>Release v0.3.12 | Jeff CLI</title>
 <meta name="generator" content="Jekyll v3.10.0" />
-<meta property="og:title" content="Jeff – Your Friendly CLI-pal" />
+<meta property="og:title" content="Release v0.3.12" />
 <meta property="og:locale" content="en_US" />
 <meta name="description" content="Jeff is your friendly pal for CLI-based workflows." />
 <meta property="og:description" content="Jeff is your friendly pal for CLI-based workflows." />
-<link rel="canonical" href="https://micwin.github.io/jeff/" />
-<meta property="og:url" content="https://micwin.github.io/jeff/" />
+<link rel="canonical" href="https://micwin.github.io/jeff/releases/v0.3.12.html" />
+<meta property="og:url" content="https://micwin.github.io/jeff/releases/v0.3.12.html" />
 <meta property="og:site_name" content="Jeff CLI" />
 <meta property="og:type" content="website" />
 <meta name="twitter:card" content="summary" />
-<meta property="twitter:title" content="Jeff – Your Friendly CLI-pal" />
+<meta property="twitter:title" content="Release v0.3.12" />
 <script type="application/ld+json">
-{"@context":"https://schema.org","@type":"WebSite","description":"Jeff is your friendly pal for CLI-based workflows.","headline":"Jeff – Your Friendly CLI-pal","name":"Jeff CLI","url":"https://micwin.github.io/jeff/"}</script>
+{"@context":"https://schema.org","@type":"WebPage","description":"Jeff is your friendly pal for CLI-based workflows.","headline":"Release v0.3.12","url":"https://micwin.github.io/jeff/releases/v0.3.12.html"}</script>
 <!-- End Jekyll SEO tag -->
 <link rel="stylesheet" href="/jeff/assets/main.css"><link type="application/atom+xml" rel="alternate" href="https://micwin.github.io/jeff/feed.xml" title="Jeff CLI" /></head>
 <body><header class="site-header" role="banner">
@@ -36,46 +36,44 @@
 </header>
 <main class="page-content" aria-label="Content">
       <div class="wrapper">
-        <div class="home"><h1 class="page-heading">Jeff – Your Friendly CLI-pal</h1><p>Welcome to the Jeff CLI project! Jeff is your CLI helper with carefully placed boosts—focused on speeding up the shells you already know.</p>
+        <article class="post">
 
-<p><a href="https://github.com/micwin/jeff">View on GitHub</a></p>
+  <header class="post-header">
+    <h1 class="post-title">Release v0.3.12</h1>
+  </header>
 
-<h2 id="getting-started">Getting Started</h2>
-
-<ol>
-  <li>Install the CLI via <code class="language-plaintext highlighter-rouge">scripts/build.sh --compile</code> (or grab the .deb package).</li>
-  <li>Configure your Codex session with <code class="language-plaintext highlighter-rouge">jeff codex init</code>.</li>
-  <li>Ask questions using <code class="language-plaintext highlighter-rouge">jeff codex ask "What does this repo do?"</code>.</li>
-  <li>Launch the tmux overlay with <code class="language-plaintext highlighter-rouge">jeff tmux</code> (Ctrl-T opens the quick menu).</li>
-</ol>
-
-<p>Happy hacking!</p>
-
-<h2 id="some-highlights">Some Highlights</h2>
+  <div class="post-content">
+    <h2 id="highlights">Highlights</h2>
 
 <ul>
-  <li><code class="language-plaintext highlighter-rouge">jeff menu</code> gives you a simple, nestable menu for frequently used shell shortcuts.</li>
-  <li><code class="language-plaintext highlighter-rouge">jeff tmux</code> launches the overlay with a configurable status bar and lets you pop open the menu via <code class="language-plaintext highlighter-rouge">Ctrl-T</code> while pair-programming in your favorite TUI editor.</li>
-  <li><code class="language-plaintext highlighter-rouge">jeff codex tui</code> opens a long-lived Codex session for ongoing conversations.</li>
-  <li><code class="language-plaintext highlighter-rouge">jeff codex ask</code> sends a single question to Codex and returns the answer immediately.</li>
-  <li><code class="language-plaintext highlighter-rouge">jeff completion</code> installs command completions for bash, zsh, and fish.</li>
+  <li><em>Add highlights here</em></li>
 </ul>
 
 <h2 id="downloads">Downloads</h2>
 
 <ul>
-  <li><a href="/jeff/downloads.html">Download overview</a></li>
+  <li><a href="https://github.com/micwin/jeff/releases/tag/v0.3.12">GitHub Release</a></li>
+  <li><a href="https://github.com/micwin/jeff/releases/download/v0.3.12/jeff">Linux binary</a></li>
+  <li><a href="https://github.com/micwin/jeff/releases/download/v0.3.12/jeff_0.3.12_amd64.deb">Debian package</a></li>
 </ul>
 
-<!-- latest-release:start -->
-<h2 id="latest-release">Latest Release</h2>
+<h2 id="changes">Changes</h2>
 
 <ul>
-  <li><a href="https://github.com/micwin/jeff/releases/tag/v0.3.12">Download Jeff v0.3.12</a></li>
-  <li><a href="/releases/v0.3.12.html">Release notes</a>
-<!-- latest-release:end --></li>
+  <li>
+    <p>fix: wrap the Ctrl-T menu footer so the shortcut hints no longer get cut off.</p>
+  </li>
+  <li>
+    <p>fix: keep menu labels optional and show either the label or command (never both) in the Ctrl-T popup.</p>
+  </li>
+  <li>
+    <p>fix: editing a command menu entry now allows leaving the label empty (falls back to showing the command).</p>
+  </li>
 </ul>
-</div>
+
+  </div>
+
+</article>
 
       </div>
     </main><footer class="site-footer h-card">
