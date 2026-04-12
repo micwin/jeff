@@ -1,2 +1,0 @@
-- fix: Ctrl-T tmux popup now runs `jeff menu tui --pane <id>` and sends commands back to the originating pane so interactive tools work again.
-- fix: status-line template rendering preserves whitespace (no more space stripping in custom commands).
