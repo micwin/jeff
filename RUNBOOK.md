@@ -15,6 +15,7 @@ Operational procedures for Jeff. Update this file whenever the release process, 
 4. Invoke `scripts/release.sh` to bump versions, cut tags/branches, and publish artifacts/pages. `[TODO] document release.sh flags and CI steps`
 5. For cross-version publishing (docs sites, portals), update the dedicated branch (e.g., `ghpages`, `site`) and tag the deployed commit with `GHPAGES_CURRENT`, `SITE_CURRENT`, or another `*_CURRENT` tag.
 6. Post-release, archive artifacts per compliance requirements. `[TODO] add storage location]`
+7. From the release branch, run `scripts/post-release.sh` to fast-forward merge the release back into `develop` once the release is verified.
 
 ## 3. Incident Response
 - **Detection:** Monitor build/test pipelines and Smokey outputs for failures. `[TODO] specify monitoring hooks]`
