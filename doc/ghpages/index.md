@@ -18,14 +18,11 @@ Happy hacking!
 
 ## Some Highlights
 
-- `jeff tmux` opens a tmux integration so you can pair program in your tui editor with your friends
-- `jeff menu` provides an accessible and nestable menu for shell shortcuts
-- `jeff codex tui` opens a long-term codex session
-- `jeff codex ask` enters the codex session for one question only
-- `jeff completion` provides command completion for bash, zsh and fish
-
-
-with , having a easy status bar and a hackable popup menu for custom cli commands (`Ctrl-T`)
+- `jeff menu` gives you a simple, nestable menu for frequently used shell shortcuts.
+- `jeff tmux` launches the overlay with a configurable status bar and lets you pop open the menu via `Ctrl-T` while pair-programming in your favorite TUI editor.
+- `jeff codex tui` opens a long-lived Codex session for ongoing conversations.
+- `jeff codex ask` sends a single question to Codex and returns the answer immediately.
+- `jeff completion` installs command completions for bash, zsh, and fish.
 
 
 ## Downloads
