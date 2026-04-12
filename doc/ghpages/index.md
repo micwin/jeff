@@ -32,6 +32,6 @@ Happy hacking!
 <!-- latest-release:start -->
 ## Latest Release
 
-- [Download Jeff v0.3.7](https://github.com/micwin/jeff/releases/tag/v0.3.7)
-- [Release notes](/releases/v0.3.7.html)
+- [Download Jeff v0.3.12](https://github.com/micwin/jeff/releases/tag/v0.3.12)
+- [Release notes](/releases/v0.3.12.html)
 <!-- latest-release:end -->

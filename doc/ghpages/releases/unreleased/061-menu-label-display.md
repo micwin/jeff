@@ -1,1 +1,0 @@
-- fix: keep menu labels optional and show either the label or command (never both) in the Ctrl-T popup.

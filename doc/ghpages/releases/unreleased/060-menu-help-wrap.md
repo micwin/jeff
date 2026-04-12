@@ -1,1 +1,0 @@
-- fix: wrap the Ctrl-T menu footer so the shortcut hints no longer get cut off.
