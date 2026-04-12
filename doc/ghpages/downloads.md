@@ -7,6 +7,7 @@ Direct links to current and previous builds.
 
 | Version | Binary | Debian | Notes |
 |---------|--------|--------|-------|
+| v0.3.12 | [Binary](https://github.com/micwin/jeff/releases/download/v0.3.12/jeff) | [Debian](https://github.com/micwin/jeff/releases/download/v0.3.12/jeff_0.3.12_amd64.deb) | [Notes](/releases/v0.3.12.html) |
 | v0.3.7 | [Binary](https://github.com/micwin/jeff/releases/download/v0.3.7/jeff) | [Debian](https://github.com/micwin/jeff/releases/download/v0.3.7/jeff_0.3.7_amd64.deb) | [Notes](/releases/v0.3.7.html) |
 | v0.3.0 | [Binary](https://github.com/micwin/jeff/releases/download/v0.3.0/jeff) | [Debian](https://github.com/micwin/jeff/releases/download/v0.3.0/jeff_0.3.0_amd64.deb) | [Notes](/releases/v0.3.0.html) |
 | v0.1.28 | [Binary](https://github.com/micwin/jeff/releases/download/v0.1.28/jeff) | [Debian](https://github.com/micwin/jeff/releases/download/v0.1.28/jeff_0.1.28_amd64.deb) | [Notes](/releases/v0.1.28.html) |

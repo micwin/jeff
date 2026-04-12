@@ -1,1 +1,0 @@
-- fix: editing a command menu entry now allows leaving the label empty (falls back to showing the command).
