@@ -194,7 +194,8 @@ func (m *menuModel) View() string {
 	case modeMove:
 		b.WriteString("Move mode: ↑/↓ move • Enter confirm • Esc cancels\n")
 	default:
-		b.WriteString("Keys: ↑/↓ move • Enter run/open • a append cmd • i insert cmd • A append menu • I insert menu • e edit • d delete • m move • Esc/q close\n")
+		help := "Keys: ↑/↓ move • Enter run/open • a append cmd • i insert cmd • A append menu • I insert menu • e edit • d delete • m move • Esc/q close"
+		b.WriteString(wrapText(help, 70) + "\n")
 	}
 
 	if m.err != nil {
@@ -654,4 +655,26 @@ func newTextInput(value, placeholder string) textinput.Model {
 	ti.SetValue(value)
 	ti.Focus()
 	return ti
+}
+
+func wrapText(text string, width int) string {
+	if width <= 0 {
+		width = 70
+	}
+	words := strings.Fields(text)
+	if len(words) == 0 {
+		return ""
+	}
+	lines := make([]string, 0)
+	current := words[0]
+	for _, word := range words[1:] {
+		if len(current)+1+len(word) > width {
+			lines = append(lines, current)
+			current = word
+		} else {
+			current += " " + word
+		}
+	}
+	lines = append(lines, current)
+	return strings.Join(lines, "\n")
 }
