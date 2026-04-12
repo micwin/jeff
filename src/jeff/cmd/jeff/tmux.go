@@ -38,6 +38,7 @@ Common tmux keys once running:
 		newTmuxSetLayoutCmd(),
 		newTmuxSetIntervalCmd(),
 		newTmuxMenuCmd(),
+		newTmuxKillCmd(),
 	)
 
 	return cmd
@@ -141,7 +142,6 @@ func newTmuxMenuCmd() *cobra.Command {
 		newMenuMoveCmd(),
 		newMenuListCmd(),
 		newMenuShowCmd(),
-		newMenuKillCmd(),
 	)
 
 	return menuCmd
@@ -376,10 +376,10 @@ func newMenuShowCmd() *cobra.Command {
 	return cmd
 }
 
-func newMenuKillCmd() *cobra.Command {
+func newTmuxKillCmd() *cobra.Command {
 	cmd := &cobra.Command{
 		Use:   "kill",
-		Short: "Kill the jeff tmux session and clean up bindings",
+		Short: "Kill the jeff tmux session and remove its hooks",
 		RunE: func(cmd *cobra.Command, args []string) error {
 			if err := runTmux("kill-session", "-t", tmuxSessionName); err != nil {
 				return fmt.Errorf("kill-session: %w", err)
