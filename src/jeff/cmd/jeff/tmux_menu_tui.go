@@ -375,9 +375,6 @@ func (m *menuModel) finishAddEntry() {
 			m.statusMessage = "Command required"
 			return
 		}
-		if entry.Label == "" {
-			entry.Label = entry.Command
-		}
 	}
 
 	entry.ID = generateMenuID(labelOrCommand(entry.Label, entry.Command), m.entries)
