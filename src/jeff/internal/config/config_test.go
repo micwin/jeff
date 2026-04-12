@@ -22,9 +22,18 @@ func TestStoreLoadAndSave(t *testing.T) {
 	if cfg.CodexBinary == "" {
 		t.Fatalf("expected default codex binary, got empty string")
 	}
+	if cfg.ShellStatus.Left.Command == "" || cfg.ShellStatus.Center.Command == "" || cfg.ShellStatus.Right.Command == "" {
+		t.Fatalf("expected default shell status commands, got %+v", cfg.ShellStatus)
+	}
+	if cfg.ShellStatus.Layout.Left == 0 || cfg.ShellStatus.Layout.Center == 0 || cfg.ShellStatus.Layout.Right == 0 {
+		t.Fatalf("expected default layout, got %+v", cfg.ShellStatus.Layout)
+	}
 
 	cfg.RecordSession("abc123")
 	cfg.CodexBinary = "/usr/local/bin/codex"
+	cfg.ShellStatus.Left.Command = "echo left"
+	cfg.ShellStatus.Left.Interval = 10
+	cfg.ShellStatus.Layout.Left = 5
 
 	if err := store.Save(cfg); err != nil {
 		t.Fatalf("save config: %v", err)
@@ -48,6 +57,12 @@ func TestStoreLoadAndSave(t *testing.T) {
 	}
 	if loaded.CodexBinary != "/usr/local/bin/codex" {
 		t.Fatalf("binary mismatch: %s", loaded.CodexBinary)
+	}
+	if loaded.ShellStatus.Left.Command != "echo left" || loaded.ShellStatus.Left.Interval != 10 {
+		t.Fatalf("shell status not persisted: %+v", loaded.ShellStatus.Left)
+	}
+	if loaded.ShellStatus.Layout.Left != 5 {
+		t.Fatalf("layout not persisted: %+v", loaded.ShellStatus.Layout)
 	}
 
 	if len(loaded.SessionHistory) != 1 || loaded.SessionHistory[0] != "abc123" {

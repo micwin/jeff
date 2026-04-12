@@ -29,6 +29,7 @@ Version: %s
 
 Commands:
   codex       Manage Codex integration (init, ask, tui)
+  tmux        Launch the Jeff tmux overlay (requires tmux)
   completion  Generate shell completions`, ver)
 
 	cmd := &cobra.Command{
@@ -40,6 +41,8 @@ Commands:
 	}
 	cmd.Version = ver
 	cmd.SetVersionTemplate("jeff version: {{.Version}}\n")
+	defaultHelp := cmd.HelpTemplate()
+	cmd.SetHelpTemplate("{{if .Version}}Jeff CLI {{.Version}}\n\n{{end}}" + defaultHelp)
 
 	cmd.PersistentFlags().StringVar(&configDir, "config", "", "Override config directory (defaults to XDG config home)")
 	cmd.PersistentFlags().BoolVar(&showStatus, "status", false, "Print Codex status header before answers")
@@ -49,6 +52,7 @@ Commands:
 
 	cmd.AddCommand(
 		newCodexCmd(),
+		newTmuxCmd(),
 		newCompletionCmd(cmd),
 		newVersionCmd(),
 	)
