@@ -16,6 +16,11 @@ Welcome to the Jeff CLI project! Jeff is your CLI helper with carefully placed b
 
 Happy hacking!
 
+## Quick Menu Tips
+
+- `Ctrl-T` opens the shortcut popup inside `jeff tmux`; use `jeff menu tui` outside tmux for the same UI.
+- Prefix any menu command with `!` to run it via sudo (`!` alone becomes `sudo su -`). Completion happens before the rewrite, so you can still tab-expand the original command.
+
 ## Downloads
 
 - [Download overview]({{ "/downloads.html" | relative_url }})
