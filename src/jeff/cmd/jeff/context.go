@@ -26,6 +26,14 @@ func (c *commandContext) saveConfig(cfg *config.Config) error {
 	return c.store.Save(cfg)
 }
 
+func (c *commandContext) loadMenuEntries() ([]config.TmuxMenuEntry, error) {
+	return c.store.LoadMenu()
+}
+
+func (c *commandContext) saveMenuEntries(entries []config.TmuxMenuEntry) error {
+	return c.store.SaveMenu(entries)
+}
+
 type contextKey struct{}
 
 var storeCache struct {
