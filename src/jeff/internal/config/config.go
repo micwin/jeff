@@ -28,6 +28,13 @@ type Config struct {
 	CompletionDir  string            `json:"completion_dir,omitempty"`
 	CodexBinary    string            `json:"codex_binary,omitempty"`
 	ShellStatus    ShellStatusConfig `json:"shell_status,omitempty"`
+	TmuxMenu       []TmuxMenuEntry   `json:"tmux_menu,omitempty"`
+}
+
+type TmuxMenuEntry struct {
+	ID      string `json:"id"`
+	Label   string `json:"label"`
+	Command string `json:"command"`
 }
 
 type ShellStatusConfig struct {
@@ -188,6 +195,7 @@ func (c *Config) applyDefaults() {
 		c.CodexBinary = defaultCodexBin
 	}
 	c.ensureShellDefaults()
+	c.ensureMenuIDs()
 }
 
 func (c *Config) ensureShellDefaults() {
@@ -217,6 +225,14 @@ func (c *Config) ensureShellDefaults() {
 	}
 	if c.ShellStatus.Layout.Right <= 0 {
 		c.ShellStatus.Layout.Right = 3
+	}
+}
+
+func (c *Config) ensureMenuIDs() {
+	for i := range c.TmuxMenu {
+		if c.TmuxMenu[i].ID == "" {
+			c.TmuxMenu[i].ID = fmt.Sprintf("entry-%d", i+1)
+		}
 	}
 }
 

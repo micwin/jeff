@@ -34,6 +34,9 @@ func TestStoreLoadAndSave(t *testing.T) {
 	cfg.ShellStatus.Left.Command = "echo left"
 	cfg.ShellStatus.Left.Interval = 10
 	cfg.ShellStatus.Layout.Left = 5
+	cfg.TmuxMenu = []TmuxMenuEntry{
+		{ID: "deploy", Label: "Deploy", Command: "scripts/deploy.sh"},
+	}
 
 	if err := store.Save(cfg); err != nil {
 		t.Fatalf("save config: %v", err)
@@ -63,6 +66,10 @@ func TestStoreLoadAndSave(t *testing.T) {
 	}
 	if loaded.ShellStatus.Layout.Left != 5 {
 		t.Fatalf("layout not persisted: %+v", loaded.ShellStatus.Layout)
+	}
+
+	if len(loaded.TmuxMenu) != 1 || loaded.TmuxMenu[0].ID != "deploy" {
+		t.Fatalf("tmux menu not persisted: %+v", loaded.TmuxMenu)
 	}
 
 	if len(loaded.SessionHistory) != 1 || loaded.SessionHistory[0] != "abc123" {

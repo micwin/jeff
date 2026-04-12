@@ -12,6 +12,7 @@ Welcome to the Jeff CLI project! Jeff is your CLI helper with carefully placed b
 1. Install the CLI via `scripts/build.sh --compile` (or grab the .deb package).
 2. Configure your Codex session with `jeff codex init`.
 3. Ask questions using `jeff codex ask "What does this repo do?"`.
+4. Launch the tmux overlay with `jeff tmux` (Ctrl-T opens the quick menu).
 
 Happy hacking!
 
