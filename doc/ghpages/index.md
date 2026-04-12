@@ -5,6 +5,8 @@ title: Jeff – Your Friendly CLI-pal
 
 Welcome to the Jeff CLI project! Jeff is your CLI helper with carefully placed boosts—focused on speeding up the shells you already know.
 
+[View on GitHub](https://github.com/micwin/jeff)
+
 ## Getting Started
 
 1. Install the CLI via `scripts/build.sh --compile` (or grab the .deb package).
