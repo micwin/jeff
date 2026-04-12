@@ -73,6 +73,7 @@ func runMenuCommand(ctx *commandContext, paneID, command string) error {
 	if strings.TrimSpace(command) == "" {
 		return nil
 	}
+	command = expandBangCommand(command)
 	if paneID == "" {
 		cmd := exec.Command(userShellPath(), "-c", command)
 		cmd.Stdin = ctx.stdin
@@ -82,6 +83,18 @@ func runMenuCommand(ctx *commandContext, paneID, command string) error {
 	}
 
 	return runTmux("send-keys", "-t", paneID, command, "C-m")
+}
+
+func expandBangCommand(command string) string {
+	trimmed := strings.TrimSpace(command)
+	if !strings.HasPrefix(trimmed, "!") {
+		return command
+	}
+	rest := strings.TrimSpace(trimmed[1:])
+	if rest == "" {
+		return "sudo su -"
+	}
+	return "sudo " + rest
 }
 
 type menuModel struct {
