@@ -38,7 +38,7 @@ Common tmux keys once running:
 		newTmuxSetStatusCmd("right"),
 		newTmuxSetLayoutCmd(),
 		newTmuxSetIntervalCmd(),
-		newTmuxMenuCmd(),
+		newTmuxRestartCmd(),
 		newTmuxKillCmd(),
 	)
 
@@ -130,10 +130,10 @@ func resetStatusToDefault(ctx *commandContext, region string) error {
 	return nil
 }
 
-func newTmuxMenuCmd() *cobra.Command {
+func newMenuCmd() *cobra.Command {
 	menuCmd := &cobra.Command{
 		Use:   "menu",
-		Short: "Manage Jeff tmux popup menu entries",
+		Short: "Manage Jeff popup menu entries",
 	}
 
 	menuCmd.AddCommand(
@@ -143,6 +143,7 @@ func newTmuxMenuCmd() *cobra.Command {
 		newMenuMoveCmd(),
 		newMenuCleanCmd(),
 		newMenuListCmd(),
+		newMenuTuiCmd(),
 		newMenuShowCmd(),
 	)
 
@@ -165,8 +166,11 @@ func newMenuAddCmd() *cobra.Command {
 			}
 			label = strings.TrimSpace(label)
 			commandStr = strings.TrimSpace(commandStr)
-			if label == "" || commandStr == "" {
-				return errors.New("both --label and --command are required")
+			if commandStr == "" {
+				return errors.New("--command is required")
+			}
+			if label == "" {
+				label = commandStr
 			}
 
 			cfg, err := ctx.loadConfig()
@@ -213,7 +217,7 @@ func newMenuAddCmd() *cobra.Command {
 		},
 	}
 
-	cmd.Flags().StringVar(&label, "label", "", "Menu label")
+	cmd.Flags().StringVar(&label, "label", "", "Menu label (defaults to command)")
 	cmd.Flags().StringVar(&commandStr, "command", "", "Command to execute")
 	cmd.Flags().StringVar(&customID, "id", "", "Optional entry id")
 	cmd.Flags().IntVar(&insertIndex, "index", 0, "1-based position for the new entry (defaults to append)")
@@ -415,22 +419,44 @@ func newMenuShowCmd() *cobra.Command {
 			if err != nil {
 				return err
 			}
+			cfg, err := ctx.loadConfig()
+			if err != nil {
+				return err
+			}
 			target := paneID
 			if target == "" {
 				target = os.Getenv("TMUX_PANE")
 			}
 			if target == "" {
-				return errors.New("jeff tmux menu show must run within tmux (try launching 'jeff tmux' first)")
-			}
-
-			cfg, err := ctx.loadConfig()
-			if err != nil {
-				return err
+				return runMenuTui(ctx, "", cfg.TmuxMenu)
 			}
 			return displayTmuxMenu(cfg.TmuxMenu, target)
 		},
 	}
 	cmd.Flags().StringVar(&paneID, "pane", "", "tmux pane id (internal)")
+	return cmd
+}
+
+func newTmuxRestartCmd() *cobra.Command {
+	cmd := &cobra.Command{
+		Use:   "restart",
+		Short: "Restart the jeff tmux session",
+		RunE: func(cmd *cobra.Command, args []string) error {
+			ctx, err := commandContextFrom(cmd)
+			if err != nil {
+				return err
+			}
+			if err := runTmux("kill-session", "-t", tmuxSessionName); err != nil {
+				if strings.Contains(err.Error(), "can't find session") || strings.Contains(err.Error(), "no server running") {
+					// ignore
+				} else {
+					return fmt.Errorf("kill-session: %w", err)
+				}
+			}
+			removeCtrlTBinding()
+			return runTmuxOverlay(ctx)
+		},
+	}
 	return cmd
 }
 
@@ -440,7 +466,9 @@ func newTmuxKillCmd() *cobra.Command {
 		Short: "Kill the jeff tmux session and remove its hooks",
 		RunE: func(cmd *cobra.Command, args []string) error {
 			if err := runTmux("kill-session", "-t", tmuxSessionName); err != nil {
-				return fmt.Errorf("kill-session: %w", err)
+				if !strings.Contains(err.Error(), "can't find session") {
+					return fmt.Errorf("kill-session: %w", err)
+				}
 			}
 			removeCtrlTBinding()
 			return nil

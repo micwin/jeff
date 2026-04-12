@@ -30,6 +30,7 @@ Version: %s
 Commands:
   codex       Manage Codex integration (init, ask, tui)
   tmux        Launch the Jeff tmux overlay (requires tmux)
+  menu        Manage Jeff's interactive shortcut menu
   completion  Generate shell completions`, ver)
 
 	cmd := &cobra.Command{
@@ -53,6 +54,7 @@ Commands:
 	cmd.AddCommand(
 		newCodexCmd(),
 		newTmuxCmd(),
+		newMenuCmd(),
 		newCompletionCmd(cmd),
 		newVersionCmd(),
 	)
