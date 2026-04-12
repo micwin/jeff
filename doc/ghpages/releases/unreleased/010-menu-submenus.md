@@ -1,0 +1,1 @@
+- feat: allow nested `jeff menu` submenus with inline management, Ctrl-T navigation, and standalone mode outside tmux.

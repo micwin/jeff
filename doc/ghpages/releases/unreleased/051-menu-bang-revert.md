@@ -1,1 +1,0 @@
-- change: remove sudo `!` expansion inside the Ctrl-T menu (the shell handles `!` shortcuts on its own).

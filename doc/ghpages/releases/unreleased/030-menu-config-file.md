@@ -1,0 +1,1 @@
+- chore: split menu configuration into its own `menu.json` with dedicated load/save helpers so `jeff menu` persists independently of `config.json`.
