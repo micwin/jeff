@@ -141,6 +141,7 @@ func newTmuxMenuCmd() *cobra.Command {
 		newMenuMoveCmd(),
 		newMenuListCmd(),
 		newMenuShowCmd(),
+		newMenuKillCmd(),
 	)
 
 	return menuCmd
@@ -370,6 +371,20 @@ func newMenuShowCmd() *cobra.Command {
 				return err
 			}
 			return displayTmuxMenu(cfg.TmuxMenu)
+		},
+	}
+	return cmd
+}
+
+func newMenuKillCmd() *cobra.Command {
+	cmd := &cobra.Command{
+		Use:   "kill",
+		Short: "Kill the jeff tmux session and clean up bindings",
+		RunE: func(cmd *cobra.Command, args []string) error {
+			if err := runTmux("kill-session", "-t", tmuxSessionName); err != nil {
+				return fmt.Errorf("kill-session: %w", err)
+			}
+			return nil
 		},
 	}
 	return cmd
