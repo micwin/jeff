@@ -1,5 +1,5 @@
 #!/usr/bin/env bash
-# Smokey test: validates jeff init/ask/status flows using a codex stub.
+# Smokey test: validates jeff codex init/ask/status flows using a codex stub.
 
 set -euo pipefail
 
@@ -35,15 +35,15 @@ if [[ ! -x "$JEFF_BIN" ]]; then
 	exit 1
 fi
 
-"$JEFF_BIN" --config "$CONFIG_DIR" init --session stub-session --codex-binary "$CODEX_STUB" >/dev/null
+"$JEFF_BIN" --config "$CONFIG_DIR" codex init --session stub-session --codex-binary "$CODEX_STUB" >/dev/null
 
 repo_pwd=$(pwd)
 
-ask_plain=$("$JEFF_BIN" --config "$CONFIG_DIR" ask 'Test question?')
+ask_plain=$("$JEFF_BIN" --config "$CONFIG_DIR" codex ask 'Test question?')
 expected_plain="Answer: You are operating inside $repo_pwd. Test question?"
 assert_eq "$expected_plain" "$ask_plain" "ask emits plain answer with dir context"
 
-ask_tokens=$("$JEFF_BIN" --config "$CONFIG_DIR" ask --show-token-cost 'Another question?')
+ask_tokens=$("$JEFF_BIN" --config "$CONFIG_DIR" codex ask --show-token-cost 'Another question?')
 tokens_answer=$(printf '%s\n' "$ask_tokens" | head -n 1)
 tokens_usage=$(printf '%s\n' "$ask_tokens" | tail -n +2)
 expected_answer="Answer: You are operating inside $repo_pwd. Another question?"
@@ -61,7 +61,7 @@ if ! grep -q 'Token: tokens used' <<<"$ask_tokens"; then
 fi
 echo "ok: ask shows token usage when requested"
 
-status_out=$("$JEFF_BIN" --status --config "$CONFIG_DIR" ask 'Status question?')
+status_out=$("$JEFF_BIN" --status --config "$CONFIG_DIR" codex ask 'Status question?')
 expected_answer_suffix=$'\n\n'
 expected_answer_suffix+="Answer: You are operating inside $repo_pwd. Status question?"
 if [[ "$status_out" != *"$expected_answer_suffix" ]]; then
@@ -80,13 +80,13 @@ if ! grep -q '^session id: [A-Za-z0-9][*]*-[A-Za-z0-9][*]*-[A-Za-z0-9][*]*-[A-Za
 fi
 echo "ok: status flag prints metadata before answer"
 
-chat_out=$("$JEFF_BIN" --config "$CONFIG_DIR" chat)
-if [[ "$chat_out" != OpenAI* ]]; then
-	printf 'FAIL: chat did not emit header\n%s\n' "$chat_out" >&2
+tui_out=$("$JEFF_BIN" --config "$CONFIG_DIR" codex tui)
+if [[ "$tui_out" != OpenAI* ]]; then
+	printf 'FAIL: tui did not emit header\n%s\n' "$tui_out" >&2
 	exit 1
 fi
-if ! grep -q '^user$' <<<"$chat_out"; then
-	printf 'FAIL: chat missing user line\n' >&2
+if ! grep -q '^user$' <<<"$tui_out"; then
+	printf 'FAIL: tui missing user line\n' >&2
 	exit 1
 fi
-echo "ok: chat streams interactive output"
+echo "ok: tui streams interactive output"

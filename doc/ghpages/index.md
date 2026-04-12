@@ -8,8 +8,8 @@ Welcome to the Jeff CLI project! Jeff is your CLI helper with carefully placed b
 ## Getting Started
 
 1. Install the CLI via `scripts/build.sh --compile` (or grab the .deb package).
-2. Configure your Codex session with `jeff init`.
-3. Ask questions using `jeff ask "What does this repo do?"`.
+2. Configure your Codex session with `jeff codex init`.
+3. Ask questions using `jeff codex ask "What does this repo do?"`.
 
 Happy hacking!
 
@@ -20,6 +20,6 @@ Happy hacking!
 <!-- latest-release:start -->
 ## Latest Release
 
-- [Download Jeff v0.1.13](https://github.com/micwin/jeff/releases/tag/v0.1.13)
-- [Release notes](/releases/v0.1.13.html)
+- [Download Jeff v0.1.14](https://github.com/micwin/jeff/releases/tag/v0.1.14)
+- [Release notes]({{ "/releases/v0.1.14.html" | relative_url }})
 <!-- latest-release:end -->
