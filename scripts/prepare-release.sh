@@ -82,11 +82,30 @@ create_release_notes() {
     return
   fi
 
-  notes_dir="$REPO_ROOT/doc/ghpages/releases"
-  mkdir -p "$notes_dir"
-  notes_file="$notes_dir/v$RELEASE_VERSION.md"
-  if [ ! -f "$notes_file" ]; then
-    cat <<EOF >"$notes_file"
+notes_dir="$REPO_ROOT/doc/ghpages/releases"
+snippets_dir="$notes_dir/unreleased"
+mkdir -p "$notes_dir" "$snippets_dir"
+shopt -s nullglob
+snippet_files=("$snippets_dir"/*.md)
+shopt -u nullglob
+notes_file="$notes_dir/v$RELEASE_VERSION.md"
+snippets_used=0
+if [ ! -f "$notes_file" ]; then
+  changes_block=$(python3 - "$snippets_dir" <<'PY'
+import sys, pathlib
+dir_path = pathlib.Path(sys.argv[1])
+snippets = sorted(dir_path.glob('*.md'))
+lines = []
+for path in snippets:
+    text = path.read_text().strip()
+    if text:
+        lines.append(text)
+if not lines:
+    lines = ["- _List changes here_"]
+print("\n\n".join(lines))
+PY
+)
+  cat <<EOF >"$notes_file"
 ---
 layout: page
 title: Release v$RELEASE_VERSION
@@ -104,10 +123,11 @@ title: Release v$RELEASE_VERSION
 
 ## Changes
 
-- _List changes here_
+$changes_block
 EOF
-    git add "$notes_file"
-  fi
+  git add "$notes_file"
+  snippets_used=1
+fi
 
   index_file="$REPO_ROOT/doc/ghpages/index.md"
   latest_block="<!-- latest-release:start -->\n## Latest Release\n\n- [Download Jeff v$RELEASE_VERSION](https://github.com/micwin/jeff/releases/tag/v$RELEASE_VERSION)\n- [Release notes](/releases/v$RELEASE_VERSION.html)\n<!-- latest-release:end -->"
@@ -128,6 +148,11 @@ PY
     printf '\n%s\n' "$latest_block" >>"$index_file"
   fi
   git add "$index_file"
+
+  if [ $snippets_used -eq 1 ] && [ ${#snippet_files[@]} -gt 0 ]; then
+    rm -f "${snippet_files[@]}"
+    git add -u "$snippets_dir"
+  fi
 
   mark_done notes
 }
