@@ -3,6 +3,7 @@ package main
 import (
 	"errors"
 	"fmt"
+	"io"
 	"os"
 	"strconv"
 	"strings"
@@ -155,10 +156,12 @@ func newMenuAddCmd() *cobra.Command {
 	var commandStr string
 	var customID string
 	var insertIndex int
+	var parentID string
+	var createMenu bool
 
 	cmd := &cobra.Command{
 		Use:   "add-entry",
-		Short: "Add a tmux popup menu entry",
+		Short: "Add a menu entry",
 		RunE: func(cmd *cobra.Command, args []string) error {
 			ctx, err := commandContextFrom(cmd)
 			if err != nil {
@@ -166,61 +169,78 @@ func newMenuAddCmd() *cobra.Command {
 			}
 			label = strings.TrimSpace(label)
 			commandStr = strings.TrimSpace(commandStr)
-			if commandStr == "" {
-				return errors.New("--command is required")
-			}
-			if label == "" {
-				label = commandStr
-			}
 
-			cfg, err := ctx.loadConfig()
+			entries, err := ctx.loadMenuEntries()
 			if err != nil {
 				return err
 			}
+
+			targetSlice, err := menuEntriesForParent(&entries, parentID)
+			if err != nil {
+				return err
+			}
+
+			entryType := config.MenuEntryTypeCommand
+			if createMenu {
+				entryType = config.MenuEntryTypeMenu
+			}
+
+			if entryType == config.MenuEntryTypeMenu {
+				if label == "" {
+					return errors.New("--label is required for menus")
+				}
+				commandStr = ""
+			} else if commandStr == "" {
+				return errors.New("--command is required (omit --menu to add commands)")
+			}
+
 			entryID := customID
 			if entryID == "" {
-				entryID = generateMenuID(label, cfg)
-			}
-			for _, entry := range cfg.TmuxMenu {
-				if entry.ID == entryID {
-					return fmt.Errorf("menu entry id %q already exists", entryID)
-				}
+				entryID = generateMenuID(labelOrCommand(label, commandStr), entries)
 			}
 
 			entry := config.TmuxMenuEntry{
-				ID:      entryID,
-				Label:   label,
-				Command: commandStr,
+				ID:    entryID,
+				Label: label,
+				Type:  entryType,
 			}
-			cfg.TmuxMenu = append(cfg.TmuxMenu, entry)
+			if entry.Type == config.MenuEntryTypeCommand {
+				entry.Command = commandStr
+				if entry.Label == "" {
+					entry.Label = commandStr
+				}
+			} else {
+				entry.Command = ""
+			}
 
+			idx := len(*targetSlice)
 			if insertIndex > 0 {
-				if insertIndex > len(cfg.TmuxMenu) {
-					insertIndex = len(cfg.TmuxMenu)
+				if insertIndex > len(*targetSlice)+1 {
+					insertIndex = len(*targetSlice) + 1
 				}
-				targetIdx := insertIndex - 1
-				if targetIdx < len(cfg.TmuxMenu)-1 {
-					copy(cfg.TmuxMenu[targetIdx+1:], cfg.TmuxMenu[targetIdx:len(cfg.TmuxMenu)-1])
-				}
-				cfg.TmuxMenu[targetIdx] = entry
+				idx = insertIndex - 1
 			}
+			insertMenuEntry(targetSlice, entry, idx)
 
-			if err := ctx.saveConfig(cfg); err != nil {
+			if err := ctx.saveMenuEntries(entries); err != nil {
 				return err
 			}
-			position := len(cfg.TmuxMenu)
-			if insertIndex > 0 {
-				position = insertIndex
+			position := idx + 1
+			if parentID != "" {
+				fmt.Fprintf(ctx.stdout, "Added menu entry %s (%s) under %s at position %d\n", entryID, entry.Label, parentID, position)
+			} else {
+				fmt.Fprintf(ctx.stdout, "Added menu entry %s (%s) at position %d\n", entryID, entry.Label, position)
 			}
-			fmt.Fprintf(ctx.stdout, "Added menu entry %s (%s) at position %d\n", entryID, label, position)
 			return nil
 		},
 	}
 
-	cmd.Flags().StringVar(&label, "label", "", "Menu label (defaults to command)")
+	cmd.Flags().StringVar(&label, "label", "", "Menu label (defaults to command for commands)")
 	cmd.Flags().StringVar(&commandStr, "command", "", "Command to execute")
 	cmd.Flags().StringVar(&customID, "id", "", "Optional entry id")
 	cmd.Flags().IntVar(&insertIndex, "index", 0, "1-based position for the new entry (defaults to append)")
+	cmd.Flags().StringVar(&parentID, "parent", "", "Optional parent menu entry id")
+	cmd.Flags().BoolVar(&createMenu, "menu", false, "Create a submenu instead of a command entry")
 
 	return cmd
 }
@@ -235,26 +255,19 @@ func newMenuDeleteCmd() *cobra.Command {
 			if err != nil {
 				return err
 			}
-			entryID := args[0]
-			cfg, err := ctx.loadConfig()
+			entries, err := ctx.loadMenuEntries()
 			if err != nil {
 				return err
 			}
-			index := -1
-			for i, entry := range cfg.TmuxMenu {
-				if entry.ID == entryID {
-					index = i
-					break
-				}
+			loc, ok := findMenuLocation(&entries, args[0])
+			if !ok {
+				return fmt.Errorf("no menu entry with id %q", args[0])
 			}
-			if index == -1 {
-				return fmt.Errorf("no menu entry with id %q", entryID)
-			}
-			cfg.TmuxMenu = append(cfg.TmuxMenu[:index], cfg.TmuxMenu[index+1:]...)
-			if err := ctx.saveConfig(cfg); err != nil {
+			removeMenuEntry(loc.entries, loc.index)
+			if err := ctx.saveMenuEntries(entries); err != nil {
 				return err
 			}
-			fmt.Fprintf(ctx.stdout, "Deleted menu entry %s\n", entryID)
+			fmt.Fprintf(ctx.stdout, "Deleted menu entry %s\n", args[0])
 			return nil
 		},
 	}
@@ -272,26 +285,24 @@ func newMenuRenameCmd() *cobra.Command {
 			if err != nil {
 				return err
 			}
-			newLabel = strings.TrimSpace(newLabel)
-			if newLabel == "" {
-				return errors.New("--label is required")
-			}
-			cfg, err := ctx.loadConfig()
+			entries, err := ctx.loadMenuEntries()
 			if err != nil {
 				return err
 			}
-			found := false
-			for i := range cfg.TmuxMenu {
-				if cfg.TmuxMenu[i].ID == args[0] {
-					cfg.TmuxMenu[i].Label = newLabel
-					found = true
-					break
-				}
-			}
-			if !found {
+			loc, ok := findMenuLocation(&entries, args[0])
+			if !ok {
 				return fmt.Errorf("no menu entry %q", args[0])
 			}
-			if err := ctx.saveConfig(cfg); err != nil {
+			entry := loc.entry()
+			newLabel = strings.TrimSpace(newLabel)
+			if entry.Type == config.MenuEntryTypeMenu && newLabel == "" {
+				return errors.New("--label is required for menus")
+			}
+			if entry.Type == config.MenuEntryTypeCommand && newLabel == "" && entry.Command != "" {
+				newLabel = entry.Command
+			}
+			entry.Label = newLabel
+			if err := ctx.saveMenuEntries(entries); err != nil {
 				return err
 			}
 			fmt.Fprintf(ctx.stdout, "Menu entry %s renamed to %s\n", args[0], newLabel)
@@ -316,35 +327,26 @@ func newMenuMoveCmd() *cobra.Command {
 			if position <= 0 {
 				return errors.New("--position must be >= 1")
 			}
-			cfg, err := ctx.loadConfig()
+			entries, err := ctx.loadMenuEntries()
 			if err != nil {
 				return err
 			}
-			idx := -1
-			for i, entry := range cfg.TmuxMenu {
-				if entry.ID == args[0] {
-					idx = i
-					break
-				}
-			}
-			if idx == -1 {
+			loc, ok := findMenuLocation(&entries, args[0])
+			if !ok {
 				return fmt.Errorf("no menu entry %q", args[0])
 			}
-			if position > len(cfg.TmuxMenu) {
-				position = len(cfg.TmuxMenu)
+			entrySlice := loc.entries
+			entry := (*entrySlice)[loc.index]
+			removeMenuEntry(entrySlice, loc.index)
+			if position > len(*entrySlice)+1 {
+				position = len(*entrySlice) + 1
 			}
-			entry := cfg.TmuxMenu[idx]
-			cfg.TmuxMenu = append(cfg.TmuxMenu[:idx], cfg.TmuxMenu[idx+1:]...)
 			newIdx := position - 1
 			if newIdx < 0 {
 				newIdx = 0
 			}
-			if newIdx >= len(cfg.TmuxMenu) {
-				cfg.TmuxMenu = append(cfg.TmuxMenu, entry)
-			} else {
-				cfg.TmuxMenu = append(cfg.TmuxMenu[:newIdx], append([]config.TmuxMenuEntry{entry}, cfg.TmuxMenu[newIdx:]...)...)
-			}
-			if err := ctx.saveConfig(cfg); err != nil {
+			insertMenuEntry(entrySlice, entry, newIdx)
+			if err := ctx.saveMenuEntries(entries); err != nil {
 				return err
 			}
 			fmt.Fprintf(ctx.stdout, "Moved entry %s to position %d\n", entry.ID, position)
@@ -364,16 +366,15 @@ func newMenuCleanCmd() *cobra.Command {
 			if err != nil {
 				return err
 			}
-			cfg, err := ctx.loadConfig()
+			entries, err := ctx.loadMenuEntries()
 			if err != nil {
 				return err
 			}
-			if len(cfg.TmuxMenu) == 0 {
+			if len(entries) == 0 {
 				fmt.Fprintln(ctx.stdout, "Menu already empty.")
 				return nil
 			}
-			cfg.TmuxMenu = nil
-			if err := ctx.saveConfig(cfg); err != nil {
+			if err := ctx.saveMenuEntries(nil); err != nil {
 				return err
 			}
 			fmt.Fprintln(ctx.stdout, "Cleared all tmux menu entries.")
@@ -392,17 +393,15 @@ func newMenuListCmd() *cobra.Command {
 			if err != nil {
 				return err
 			}
-			cfg, err := ctx.loadConfig()
+			entries, err := ctx.loadMenuEntries()
 			if err != nil {
 				return err
 			}
-			if len(cfg.TmuxMenu) == 0 {
+			if len(entries) == 0 {
 				fmt.Fprintln(ctx.stdout, "No menu entries configured.")
 				return nil
 			}
-			for i, entry := range cfg.TmuxMenu {
-				fmt.Fprintf(ctx.stdout, "%2d. [%s] %s -> %s\n", i+1, entry.ID, entry.Label, entry.Command)
-			}
+			printMenuEntries(ctx.stdout, entries, "")
 			return nil
 		},
 	}
@@ -419,7 +418,7 @@ func newMenuShowCmd() *cobra.Command {
 			if err != nil {
 				return err
 			}
-			cfg, err := ctx.loadConfig()
+			entries, err := ctx.loadMenuEntries()
 			if err != nil {
 				return err
 			}
@@ -428,9 +427,9 @@ func newMenuShowCmd() *cobra.Command {
 				target = os.Getenv("TMUX_PANE")
 			}
 			if target == "" {
-				return runMenuTui(ctx, "", cfg.TmuxMenu)
+				return runMenuTui(ctx, "", entries)
 			}
-			return displayTmuxMenu(cfg.TmuxMenu, target)
+			return displayTmuxMenu(target)
 		},
 	}
 	cmd.Flags().StringVar(&paneID, "pane", "", "tmux pane id (internal)")
@@ -477,7 +476,7 @@ func newTmuxKillCmd() *cobra.Command {
 	return cmd
 }
 
-func generateMenuID(label string, cfg *config.Config) string {
+func generateMenuID(label string, entries []config.TmuxMenuEntry) string {
 	base := strings.ToLower(label)
 	base = strings.TrimSpace(base)
 	if base == "" {
@@ -495,33 +494,93 @@ func generateMenuID(label string, cfg *config.Config) string {
 	}
 	unique := base
 	count := 1
-	for entryExists(unique, cfg.TmuxMenu) {
+	ids := make(map[string]struct{})
+	collectMenuIDs(entries, ids)
+	for {
+		if _, exists := ids[unique]; !exists {
+			break
+		}
 		count++
 		unique = fmt.Sprintf("%s-%d", base, count)
 	}
 	return unique
 }
 
-func entryExists(id string, entries []config.TmuxMenuEntry) bool {
-	for _, entry := range entries {
-		if entry.ID == id {
-			return true
-		}
-	}
-	return false
-}
-
-func displayTmuxMenu(entries []config.TmuxMenuEntry, paneTarget string) error {
+func displayTmuxMenu(paneTarget string) error {
 	if strings.TrimSpace(paneTarget) == "" {
 		return errors.New("no tmux pane target")
 	}
-	args := []string{"display-menu", "-t", paneTarget, "-x", "R", "-y", "P", "-T", "Jeff Shortcuts"}
-	for _, entry := range entries {
-		cmd := fmt.Sprintf("run-shell %s", shellQuote(entry.Command))
-		args = append(args, entry.Label, "", cmd)
+	cmd := fmt.Sprintf("jeff menu tui --pane %s", shellQuote(paneTarget))
+	return runTmux("display-popup", "-w", "40%", "-h", "90%", "-x", "R", "-E", cmd)
+}
+
+func collectMenuIDs(entries []config.TmuxMenuEntry, ids map[string]struct{}) {
+	for i := range entries {
+		if entries[i].ID != "" {
+			ids[entries[i].ID] = struct{}{}
+		}
+		if len(entries[i].Children) > 0 {
+			collectMenuIDs(entries[i].Children, ids)
+		}
 	}
-	args = append(args, "Close", "", "")
-	return runTmux(args...)
+}
+
+type menuLocation struct {
+	entries *[]config.TmuxMenuEntry
+	index   int
+}
+
+func (loc *menuLocation) entry() *config.TmuxMenuEntry {
+	return &(*loc.entries)[loc.index]
+}
+
+func findMenuLocation(entries *[]config.TmuxMenuEntry, id string) (*menuLocation, bool) {
+	for i := range *entries {
+		if (*entries)[i].ID == id {
+			return &menuLocation{entries: entries, index: i}, true
+		}
+		if loc, ok := findMenuLocation(&(*entries)[i].Children, id); ok {
+			return loc, true
+		}
+	}
+	return nil, false
+}
+
+func menuEntriesForParent(entries *[]config.TmuxMenuEntry, parentID string) (*[]config.TmuxMenuEntry, error) {
+	if parentID == "" {
+		return entries, nil
+	}
+	loc, ok := findMenuLocation(entries, parentID)
+	if !ok {
+		return nil, fmt.Errorf("no menu entry %q", parentID)
+	}
+	entry := loc.entry()
+	if entry.Type != config.MenuEntryTypeMenu {
+		return nil, fmt.Errorf("entry %s is not a submenu", parentID)
+	}
+	ensureChildrenSlice(entry)
+	return &entry.Children, nil
+}
+
+func printMenuEntries(w io.Writer, entries []config.TmuxMenuEntry, prefix string) {
+	for _, entry := range entries {
+		label := labelOrCommand(entry.Label, entry.Command)
+		flag := ""
+		if entry.Type == config.MenuEntryTypeMenu {
+			flag = " (menu)"
+		}
+		fmt.Fprintf(w, "%s- [%s] %s%s\n", prefix, entry.ID, label, flag)
+		if len(entry.Children) > 0 {
+			printMenuEntries(w, entry.Children, prefix+"  ")
+		}
+	}
+}
+
+func labelOrCommand(label, command string) string {
+	if strings.TrimSpace(label) != "" {
+		return label
+	}
+	return strings.TrimSpace(command)
 }
 
 func shellQuote(input string) string {
