@@ -34,10 +34,6 @@ func TestStoreLoadAndSave(t *testing.T) {
 	cfg.ShellStatus.Left.Command = "echo left"
 	cfg.ShellStatus.Left.Interval = 10
 	cfg.ShellStatus.Layout.Left = 5
-	cfg.TmuxMenu = []TmuxMenuEntry{
-		{ID: "deploy", Label: "Deploy", Command: "scripts/deploy.sh"},
-	}
-
 	if err := store.Save(cfg); err != nil {
 		t.Fatalf("save config: %v", err)
 	}
@@ -68,10 +64,6 @@ func TestStoreLoadAndSave(t *testing.T) {
 		t.Fatalf("layout not persisted: %+v", loaded.ShellStatus.Layout)
 	}
 
-	if len(loaded.TmuxMenu) != 1 || loaded.TmuxMenu[0].ID != "deploy" {
-		t.Fatalf("tmux menu not persisted: %+v", loaded.TmuxMenu)
-	}
-
 	if len(loaded.SessionHistory) != 1 || loaded.SessionHistory[0] != "abc123" {
 		t.Fatalf("history mismatch: %+v", loaded.SessionHistory)
 	}
@@ -89,5 +81,34 @@ func TestRecordSessionDedup(t *testing.T) {
 	}
 	if len(cfg.SessionHistory) != 2 {
 		t.Fatalf("expected two history entries, got %d", len(cfg.SessionHistory))
+	}
+}
+
+func TestMenuStore(t *testing.T) {
+	tmpDir := t.TempDir()
+	store, err := NewStore(tmpDir)
+	if err != nil {
+		t.Fatalf("create store: %v", err)
+	}
+
+	entries := []TmuxMenuEntry{
+		{Label: "Deploy", Command: "scripts/deploy.sh", Type: MenuEntryTypeCommand},
+	}
+	if err := store.SaveMenu(entries); err != nil {
+		t.Fatalf("save menu: %v", err)
+	}
+
+	loaded, err := store.LoadMenu()
+	if err != nil {
+		t.Fatalf("load menu: %v", err)
+	}
+	if len(loaded) != 1 {
+		t.Fatalf("expected one entry, got %d", len(loaded))
+	}
+	if loaded[0].Label != "Deploy" || loaded[0].Command != "scripts/deploy.sh" {
+		t.Fatalf("menu entry mismatch: %+v", loaded[0])
+	}
+	if loaded[0].ID == "" {
+		t.Fatalf("expected ID to be assigned")
 	}
 }
