@@ -94,8 +94,9 @@ func applyTmuxBaseConfig(cfg *config.Config) error {
 	if err := runTmux("set-option", "-t", sessionTarget, "status-position", "bottom"); err != nil {
 		return err
 	}
-	_ = runTmux("unbind-key", "-T", "root", "-t", tmuxSessionName, "C-t")
-	_ = runTmux("bind-key", "-T", "root", "-n", "C-t", "-t", tmuxSessionName, "run-shell", "jeff tmux menu show")
+	if err := configureCtrlTBinding(); err != nil {
+		return err
+	}
 
 	// Ensure an initial value so the bar renders immediately.
 	initial := buildStatusLine(80, cfg.ShellStatus.Layout, "", "", "")
@@ -339,4 +340,26 @@ func ensureTmuxSession(shell string) error {
 	}
 
 	return nil
+}
+
+func configureCtrlTBinding() error {
+	if err := runTmux("unbind-key", "-q", "-n", "C-t"); err != nil {
+		return err
+	}
+	format := fmt.Sprintf("#{==:#{session_name},%s}", tmuxSessionName)
+	menuCmd := fmt.Sprintf("run-shell %s", shellQuote("TMUX_PANE=#{pane_id} jeff tmux menu show"))
+	return runTmux(
+		"bind-key",
+		"-n",
+		"C-t",
+		"if-shell",
+		"-F",
+		format,
+		menuCmd,
+		"send-keys C-t",
+	)
+}
+
+func removeCtrlTBinding() {
+	_ = runTmux("unbind-key", "-q", "-n", "C-t")
 }

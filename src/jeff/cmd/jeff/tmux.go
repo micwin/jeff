@@ -3,6 +3,7 @@ package main
 import (
 	"errors"
 	"fmt"
+	"os"
 	"strconv"
 	"strings"
 
@@ -140,6 +141,7 @@ func newTmuxMenuCmd() *cobra.Command {
 		newMenuDeleteCmd(),
 		newMenuRenameCmd(),
 		newMenuMoveCmd(),
+		newMenuCleanCmd(),
 		newMenuListCmd(),
 		newMenuShowCmd(),
 	)
@@ -151,6 +153,7 @@ func newMenuAddCmd() *cobra.Command {
 	var label string
 	var commandStr string
 	var customID string
+	var insertIndex int
 
 	cmd := &cobra.Command{
 		Use:   "add-entry",
@@ -180,16 +183,32 @@ func newMenuAddCmd() *cobra.Command {
 				}
 			}
 
-			cfg.TmuxMenu = append(cfg.TmuxMenu, config.TmuxMenuEntry{
+			entry := config.TmuxMenuEntry{
 				ID:      entryID,
 				Label:   label,
 				Command: commandStr,
-			})
+			}
+			cfg.TmuxMenu = append(cfg.TmuxMenu, entry)
+
+			if insertIndex > 0 {
+				if insertIndex > len(cfg.TmuxMenu) {
+					insertIndex = len(cfg.TmuxMenu)
+				}
+				targetIdx := insertIndex - 1
+				if targetIdx < len(cfg.TmuxMenu)-1 {
+					copy(cfg.TmuxMenu[targetIdx+1:], cfg.TmuxMenu[targetIdx:len(cfg.TmuxMenu)-1])
+				}
+				cfg.TmuxMenu[targetIdx] = entry
+			}
 
 			if err := ctx.saveConfig(cfg); err != nil {
 				return err
 			}
-			fmt.Fprintf(ctx.stdout, "Added menu entry %s (%s)\n", entryID, label)
+			position := len(cfg.TmuxMenu)
+			if insertIndex > 0 {
+				position = insertIndex
+			}
+			fmt.Fprintf(ctx.stdout, "Added menu entry %s (%s) at position %d\n", entryID, label, position)
 			return nil
 		},
 	}
@@ -197,6 +216,7 @@ func newMenuAddCmd() *cobra.Command {
 	cmd.Flags().StringVar(&label, "label", "", "Menu label")
 	cmd.Flags().StringVar(&commandStr, "command", "", "Command to execute")
 	cmd.Flags().StringVar(&customID, "id", "", "Optional entry id")
+	cmd.Flags().IntVar(&insertIndex, "index", 0, "1-based position for the new entry (defaults to append)")
 
 	return cmd
 }
@@ -331,6 +351,34 @@ func newMenuMoveCmd() *cobra.Command {
 	return cmd
 }
 
+func newMenuCleanCmd() *cobra.Command {
+	cmd := &cobra.Command{
+		Use:   "clean",
+		Short: "Remove all tmux menu entries",
+		RunE: func(cmd *cobra.Command, args []string) error {
+			ctx, err := commandContextFrom(cmd)
+			if err != nil {
+				return err
+			}
+			cfg, err := ctx.loadConfig()
+			if err != nil {
+				return err
+			}
+			if len(cfg.TmuxMenu) == 0 {
+				fmt.Fprintln(ctx.stdout, "Menu already empty.")
+				return nil
+			}
+			cfg.TmuxMenu = nil
+			if err := ctx.saveConfig(cfg); err != nil {
+				return err
+			}
+			fmt.Fprintln(ctx.stdout, "Cleared all tmux menu entries.")
+			return nil
+		},
+	}
+	return cmd
+}
+
 func newMenuListCmd() *cobra.Command {
 	cmd := &cobra.Command{
 		Use:   "list",
@@ -358,6 +406,7 @@ func newMenuListCmd() *cobra.Command {
 }
 
 func newMenuShowCmd() *cobra.Command {
+	var paneID string
 	cmd := &cobra.Command{
 		Use:   "show",
 		Short: "Show popup menu inside tmux (bound to Ctrl-T)",
@@ -366,13 +415,22 @@ func newMenuShowCmd() *cobra.Command {
 			if err != nil {
 				return err
 			}
+			target := paneID
+			if target == "" {
+				target = os.Getenv("TMUX_PANE")
+			}
+			if target == "" {
+				return errors.New("jeff tmux menu show must run within tmux (try launching 'jeff tmux' first)")
+			}
+
 			cfg, err := ctx.loadConfig()
 			if err != nil {
 				return err
 			}
-			return displayTmuxMenu(cfg.TmuxMenu)
+			return displayTmuxMenu(cfg.TmuxMenu, target)
 		},
 	}
+	cmd.Flags().StringVar(&paneID, "pane", "", "tmux pane id (internal)")
 	return cmd
 }
 
@@ -384,6 +442,7 @@ func newTmuxKillCmd() *cobra.Command {
 			if err := runTmux("kill-session", "-t", tmuxSessionName); err != nil {
 				return fmt.Errorf("kill-session: %w", err)
 			}
+			removeCtrlTBinding()
 			return nil
 		},
 	}
@@ -424,16 +483,16 @@ func entryExists(id string, entries []config.TmuxMenuEntry) bool {
 	return false
 }
 
-func displayTmuxMenu(entries []config.TmuxMenuEntry) error {
-	if len(entries) == 0 {
-		return errors.New("no menu entries configured")
+func displayTmuxMenu(entries []config.TmuxMenuEntry, paneTarget string) error {
+	if strings.TrimSpace(paneTarget) == "" {
+		return errors.New("no tmux pane target")
 	}
-	args := []string{"display-menu", "-x", "R", "-y", "P", "-T", "Jeff Shortcuts"}
+	args := []string{"display-menu", "-t", paneTarget, "-x", "R", "-y", "P", "-T", "Jeff Shortcuts"}
 	for _, entry := range entries {
 		cmd := fmt.Sprintf("run-shell %s", shellQuote(entry.Command))
-		args = append(args, "", entry.Label, cmd)
+		args = append(args, entry.Label, "", cmd)
 	}
-	args = append(args, "", "Close", "")
+	args = append(args, "Close", "", "")
 	return runTmux(args...)
 }
 
