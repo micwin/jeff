@@ -262,7 +262,7 @@ func (m *menuModel) handleInputKey(msg tea.KeyMsg) (tea.Model, tea.Cmd) {
 		return m, nil
 	case tea.KeyEnter:
 		value := strings.TrimSpace(m.textInput.Value())
-		requireLabel := (m.mode == modeAddLabel && !m.labelOptional) || m.mode == modeEditLabel
+		requireLabel := (m.mode == modeAddLabel || m.mode == modeEditLabel) && !m.labelOptional
 		requireCommand := m.mode == modeAddCommand || m.mode == modeEditCommand
 		if value == "" && (requireLabel || requireCommand) {
 			m.statusMessage = "Value cannot be empty"
