@@ -1,0 +1,1 @@
+- feat: make the Delete key delete menu entries just like pressing `d`.
