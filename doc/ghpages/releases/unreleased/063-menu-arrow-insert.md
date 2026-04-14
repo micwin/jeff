@@ -1,0 +1,1 @@
+- feat: add arrow navigation (Right opens submenus, Left goes up) and map Insert / Shift+Insert to inserting commands or submenus in the Ctrl-T menu.
