@@ -234,13 +234,6 @@ func (m *menuModel) handleListKey(msg tea.KeyMsg) (tea.Model, tea.Cmd) {
 		if m.enterSubmenu() {
 			return m, nil
 		}
-	case tea.KeyInsert:
-		if msg.Alt {
-			m.beginInsertMenu()
-		} else {
-			m.beginInsertCommand()
-		}
-		return m, nil
 	}
 	switch msg.String() {
 	case "ctrl+c", "esc", "q":
