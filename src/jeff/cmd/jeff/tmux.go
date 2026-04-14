@@ -1,10 +1,14 @@
 package main
 
 import (
+	"bufio"
+	"bytes"
 	"errors"
 	"fmt"
 	"io"
 	"os"
+	"os/exec"
+	"path/filepath"
 	"strconv"
 	"strings"
 
@@ -39,6 +43,7 @@ Common tmux keys once running:
 		newTmuxSetStatusCmd("right"),
 		newTmuxSetLayoutCmd(),
 		newTmuxSetIntervalCmd(),
+		newTmuxInitCmd(),
 		newTmuxRestartCmd(),
 		newTmuxKillCmd(),
 	)
@@ -454,6 +459,86 @@ func newTmuxRestartCmd() *cobra.Command {
 			}
 			removeCtrlTBinding()
 			return runTmuxOverlay(ctx)
+		},
+	}
+	return cmd
+}
+
+func runTmuxInit(ctx *commandContext) error {
+	home, err := os.UserHomeDir()
+	if err != nil {
+		return fmt.Errorf("resolve home: %w", err)
+	}
+	confPath := filepath.Join(home, ".tmux.conf")
+	var contents []byte
+	if data, err := os.ReadFile(confPath); err == nil {
+		contents = data
+	} else if !errors.Is(err, os.ErrNotExist) {
+		return fmt.Errorf("read %s: %w", confPath, err)
+	}
+
+	hasExtended := bytes.Contains(contents, []byte("set -g extended-keys on"))
+	hasFormat := bytes.Contains(contents, []byte("set -g extended-keys-format csi-u"))
+	if hasExtended && hasFormat {
+		fmt.Fprintf(ctx.stdout, "tmux config already enables extended keys in %s\n", confPath)
+		return nil
+	}
+
+	fmt.Fprintf(ctx.stdout, "Jeff can add the following snippet to %s to enable Shift+Enter in tmux:\n\n", confPath)
+	fmt.Fprintf(ctx.stdout, "set -g extended-keys on\n")
+	fmt.Fprintf(ctx.stdout, "set -g extended-keys-format csi-u\n\n")
+
+	ok, err := promptYesNo(ctx, "Add snippet and restart tmux now? [y/N]: ")
+	if err != nil {
+		return err
+	}
+	if !ok {
+		return errors.New("aborted: tmux must have extended-keys enabled for Shift+Enter to work")
+	}
+
+	f, err := os.OpenFile(confPath, os.O_APPEND|os.O_CREATE|os.O_WRONLY, 0o644)
+	if err != nil {
+		return fmt.Errorf("open %s: %w", confPath, err)
+	}
+	snippet := "\n# Added by jeff tmux init\nset -g extended-keys on\nset -g extended-keys-format csi-u\n"
+	if _, err := f.WriteString(snippet); err != nil {
+		_ = f.Close()
+		return fmt.Errorf("write %s: %w", confPath, err)
+	}
+	if err := f.Close(); err != nil {
+		return fmt.Errorf("flush %s: %w", confPath, err)
+	}
+
+	fmt.Fprintf(ctx.stdout, "Appended snippet to %s\n", confPath)
+	if err := exec.Command("tmux", "kill-server").Run(); err != nil && !strings.Contains(err.Error(), "no server running") {
+		fmt.Fprintf(ctx.stderr, "warning: tmux kill-server failed: %v\n", err)
+	}
+	fmt.Fprintln(ctx.stdout, "tmux server restarted (if it was running). Shift+Enter will now be forwarded once you start Jeff tmux again.")
+	return nil
+}
+
+func promptYesNo(ctx *commandContext, message string) (bool, error) {
+	fmt.Fprint(ctx.stdout, message)
+	reader := bufio.NewReader(ctx.stdin)
+	resp, err := reader.ReadString('\n')
+	if err != nil && !errors.Is(err, io.EOF) {
+		return false, err
+	}
+	resp = strings.TrimSpace(resp)
+	resp = strings.ToLower(resp)
+	return resp == "y" || resp == "yes", nil
+}
+
+func newTmuxInitCmd() *cobra.Command {
+	cmd := &cobra.Command{
+		Use:   "init",
+		Short: "Ensure tmux config enables extended key reporting (Shift+Enter, etc.)",
+		RunE: func(cmd *cobra.Command, args []string) error {
+			ctx, err := commandContextFrom(cmd)
+			if err != nil {
+				return err
+			}
+			return runTmuxInit(ctx)
 		},
 	}
 	return cmd
