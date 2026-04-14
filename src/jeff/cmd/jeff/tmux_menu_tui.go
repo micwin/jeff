@@ -256,7 +256,7 @@ func (m *menuModel) handleListKey(msg tea.KeyMsg) (tea.Model, tea.Cmd) {
 		m.beginInsertMenu()
 	case "e":
 		m.beginEdit()
-	case "d":
+	case "d", "delete":
 		m.beginDelete()
 	case "m":
 		m.beginMove()
