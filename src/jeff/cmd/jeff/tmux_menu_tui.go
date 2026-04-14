@@ -225,6 +225,23 @@ func (m *menuModel) handleKey(msg tea.KeyMsg) (tea.Model, tea.Cmd) {
 }
 
 func (m *menuModel) handleListKey(msg tea.KeyMsg) (tea.Model, tea.Cmd) {
+	switch msg.Type {
+	case tea.KeyLeft:
+		if m.leaveSubmenu() {
+			return m, nil
+		}
+	case tea.KeyRight:
+		if m.enterSubmenu() {
+			return m, nil
+		}
+	case tea.KeyInsert:
+		if msg.Alt {
+			m.beginInsertMenu()
+		} else {
+			m.beginInsertCommand()
+		}
+		return m, nil
+	}
 	switch msg.String() {
 	case "ctrl+c", "esc", "q":
 		return m, tea.Quit
@@ -509,8 +526,7 @@ func (m *menuModel) moveSelection(delta int, moveEntry bool) {
 func (m *menuModel) activateSelection() bool {
 	if m.isUpSelected() {
 		if len(m.path) > 0 {
-			m.path = m.path[:len(m.path)-1]
-			m.selected = 0
+			m.leaveSubmenu()
 		}
 		return false
 	}
@@ -519,12 +535,43 @@ func (m *menuModel) activateSelection() bool {
 		return false
 	}
 	if entry.Type == config.MenuEntryTypeMenu {
-		ensureChildrenSlice(entry)
-		m.path = append(m.path, m.selected)
-		m.selected = 0
+		m.enterSubmenu()
 		return false
 	}
 	m.runCommand = entry.Command
+	return true
+}
+
+func (m *menuModel) enterSubmenu() bool {
+	entry := m.currentEntry()
+	if entry == nil || entry.Type != config.MenuEntryTypeMenu {
+		return false
+	}
+	ensureChildrenSlice(entry)
+	parentIndex := m.selected
+	m.path = append(m.path, parentIndex)
+	m.selected = 0
+	return true
+}
+
+func (m *menuModel) leaveSubmenu() bool {
+	if len(m.path) == 0 {
+		return false
+	}
+	parentIndex := m.path[len(m.path)-1]
+	m.path = m.path[:len(m.path)-1]
+	entries := m.currentEntries()
+	if len(*entries) == 0 {
+		m.selected = 0
+		return true
+	}
+	if parentIndex >= len(*entries) {
+		parentIndex = len(*entries) - 1
+	}
+	if parentIndex < 0 {
+		parentIndex = 0
+	}
+	m.selected = parentIndex
 	return true
 }
 
