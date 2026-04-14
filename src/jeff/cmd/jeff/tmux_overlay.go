@@ -88,6 +88,10 @@ func applyTmuxBaseConfig(cfg *config.Config) error {
 		return err
 	}
 	sessionTarget := fmt.Sprintf("%s:", tmuxSessionName)
+	if err := runTmux("set-option", "-g", "extended-keys", "always"); err != nil {
+		return err
+	}
+	_ = runTmux("set-option", "-g", "terminal-features", "xterm*:extkeys")
 	if err := runTmux("set-option", "-t", sessionTarget, "status", "on"); err != nil {
 		return err
 	}
