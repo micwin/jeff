@@ -1,1 +1,4 @@
-report main
+{{ define "main.tmpl" }}
+report={{ .Env.JEFF_TEST_REPORT_ID }}
+{{ template "table.tmpl" . }}
+{{ end }}

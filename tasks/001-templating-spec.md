@@ -65,6 +65,20 @@ Example:
 - Implicit default file:
   - if include target resolves to a package directory only, use `<package>/main.tmpl`.
 
+## Collision Prevention / Runtime Namespace
+- Jeff must not rely on plain file names like `main.tmpl` as global identifiers.
+- Internal runtime identifiers are always namespaced by template path below `templates/`.
+  - Example internal name form:
+    - `runtime/finances/report-monthly/main.tmpl`
+    - `runtime/prompt/main.tmpl`
+- This guarantees collision safety even if multiple template packages are loaded in one runtime context.
+
+## `define` / `template` Handling
+- `define` and `template` are treated as advanced compatibility features.
+- All `define` templates must be registered in the same runtime namespace (`runtime/...`) rather than plain names.
+- These template definitions are memory-only runtime artifacts; they are never persisted as separate files.
+- User docs should clearly recommend normal usage via `main.tmpl` + `include` and warn that `define/template` is advanced mode.
+
 ## Cycle Detection (must catch long cycles)
 Build an include dependency graph and validate it using DFS with 3 states per node:
 - `unvisited`
