@@ -31,6 +31,7 @@ Commands:
   codex       Manage Codex integration (init, ask, tui)
   tmux        Launch the Jeff tmux overlay (requires tmux)
   menu        Manage Jeff's interactive shortcut menu
+  tmpl        Manage Jeff templates
   completion  Generate shell completions`, ver)
 
 	cmd := &cobra.Command{
@@ -55,6 +56,7 @@ Commands:
 		newCodexCmd(),
 		newTmuxCmd(),
 		newMenuCmd(),
+		newTmplCmd(),
 		newCompletionCmd(cmd),
 		newVersionCmd(),
 	)
