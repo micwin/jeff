@@ -1,1 +1,0 @@
-- feat: enable tmux `extended-keys` / `extkeys` so Shift+Enter and other modified keys are forwarded to applications inside Jeff tmux.

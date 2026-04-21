@@ -1,1 +1,0 @@
-- feat: add `jeff tmux init` to append the recommended `extended-keys` settings to `~/.tmux.conf` (with user confirmation) so Shift+Enter works reliably.
