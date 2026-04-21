@@ -3,22 +3,16 @@
 
 set -euo pipefail
 
-# Expect Smokey to provide roots; abort if missing.
-: "${SMOKEY_TEST_ROOT:?SMOKEY_TEST_ROOT is required}"
-: "${SMOKEY_STATE_DIR:?SMOKEY_STATE_DIR is required}"
+# Resolve repository root from Smokey's tests.d root.
+REPO_ROOT=$(cd "$SMOKEY_TEST_ROOT/.." && pwd)
 
 # Expect compiled jeff binary from build case.
-JEFF_BIN="$SMOKEY_TEST_ROOT/dist/jeff"
-if [[ ! -x "$JEFF_BIN" ]]; then
-  echo "dist/jeff missing – run tests.d/000-build first" >&2
-  exit 1
-fi
+JEFF_BIN="$REPO_ROOT/dist/jeff"
 
 # Prepare isolated config+template tree in Smokey state.
 CONFIG_DIR="$SMOKEY_STATE_DIR/jeff-tmpl-config"
-rm -rf "$CONFIG_DIR"
 mkdir -p "$CONFIG_DIR/templates"
-cp -R "$SMOKEY_TEST_ROOT/tests.d/002-jeff-tmpl/fixtures/." "$CONFIG_DIR/templates/"
+cp -R "$SMOKEY_TEST_DIR/fixtures/." "$CONFIG_DIR/templates/"
 
 # Expect nested package names from discovered main.tmpl files.
 list_out=$("$JEFF_BIN" --config "$CONFIG_DIR" tmpl list)
