@@ -21,7 +21,16 @@ func newTmplCmd() *cobra.Command {
 		Long: `Work with Jeff templates stored below ~/.config/jeff/templates.
 
 Each template is a directory with a required main.tmpl file.
-Nested names are supported, e.g. finances/report-monthly.`,
+Nested names are supported, e.g. finances/report-monthly.
+
+Examples:
+  jeff tmpl list
+  jeff tmpl validate finances/report-monthly
+  jeff tmpl render finances/report-monthly
+
+Shell completion:
+  Template names are auto-completed for validate/render when completion is installed
+  via 'jeff completion <bash|zsh|fish>'.`,
 	}
 
 	cmd.AddCommand(

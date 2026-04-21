@@ -20,6 +20,7 @@ Happy hacking!
 
 - `jeff menu` gives you a simple, nestable menu for frequently used shell shortcuts.
 - `jeff tmux` launches the overlay with a configurable status bar and lets you pop open the menu via `Ctrl-T` while pair-programming in your favorite TUI editor.
+- `jeff tmpl` lets you list, validate, and render reusable template packages (with shell completion for template names).
 - `jeff codex tui` opens a long-lived Codex session for ongoing conversations.
 - `jeff codex ask` sends a single question to Codex and returns the answer immediately.
 - `jeff completion` installs command completions for bash, zsh, and fish.
