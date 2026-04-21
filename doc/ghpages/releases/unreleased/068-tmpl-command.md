@@ -1,1 +1,0 @@
-- feat: add `jeff tmpl` with `list` and `validate` plus dynamic shell completion for template names from `~/.config/jeff/templates/**/main.tmpl`.

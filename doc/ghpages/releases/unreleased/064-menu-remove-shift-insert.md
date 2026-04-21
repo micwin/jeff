@@ -1,1 +1,0 @@
-- change: drop the Shift+Insert special case in the Ctrl-T menu so Shift+Enter no longer gets swallowed.
