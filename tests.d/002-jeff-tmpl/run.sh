@@ -1,10 +1,18 @@
 #!/usr/bin/env bash
-# Smokey test: validates jeff tmpl list/validate for nested template paths.
+# Smokey test: validates jeff tmpl list/validate/render for nested templates and env placeholders.
 
 set -euo pipefail
 
+# Expect Smokey to provide roots; abort if missing.
+: "${SMOKEY_TEST_ROOT:?SMOKEY_TEST_ROOT is required}"
+: "${SMOKEY_STATE_DIR:?SMOKEY_STATE_DIR is required}"
+
 # Expect compiled jeff binary from build case.
 JEFF_BIN="$SMOKEY_TEST_ROOT/dist/jeff"
+if [[ ! -x "$JEFF_BIN" ]]; then
+  echo "dist/jeff missing – run tests.d/000-build first" >&2
+  exit 1
+fi
 
 # Prepare isolated config+template tree in Smokey state.
 CONFIG_DIR="$SMOKEY_STATE_DIR/jeff-tmpl-config"
@@ -38,3 +46,18 @@ if "$JEFF_BIN" --config "$CONFIG_DIR" tmpl validate ../escape >/dev/null 2>&1; t
 fi
 
 echo "ok: tmpl validate rejects path traversal names"
+
+# Expect render to substitute random env placeholders across main+include templates.
+export JEFF_TEST_REPORT_ID="report-$RANDOM-$RANDOM"
+export JEFF_TEST_INCLUDE_ID="include-$RANDOM-$RANDOM"
+render_out=$("$JEFF_BIN" --config "$CONFIG_DIR" tmpl render finances/report-monthly)
+if [[ "$render_out" != *"report=$JEFF_TEST_REPORT_ID"* ]]; then
+  printf 'FAIL: report env placeholder not rendered\n%s\n' "$render_out" >&2
+  exit 1
+fi
+if [[ "$render_out" != *"include=$JEFF_TEST_INCLUDE_ID"* ]]; then
+  printf 'FAIL: include env placeholder not rendered\n%s\n' "$render_out" >&2
+  exit 1
+fi
+
+echo "ok: tmpl render resolves env placeholders in main and included templates"
