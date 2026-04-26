@@ -1,0 +1,1 @@
+- fix: deploy GitHub Pages from the built site artifact instead of republishing `gh-pages` from the release workspace.

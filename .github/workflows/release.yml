@@ -11,6 +11,9 @@ jobs:
       contents: write
       pages: write
       id-token: write
+    environment:
+      name: github-pages
+      url: ${{ steps.deployment.outputs.page_url }}
     runs-on: ubuntu-latest
 
     steps:
@@ -51,26 +54,14 @@ jobs:
       - name: Build GitHub Pages site
         run: ./scripts/build-docs.sh
 
-      - name: Clean doc bundler artifacts
-        run: rm -rf doc/ghpages/.bundle doc/ghpages/vendor || true
+      - name: Configure GitHub Pages
+        uses: actions/configure-pages@v5
 
-      - name: Prepare gh-pages branch
-        env:
-          GIT_AUTHOR_NAME: Jeff Release Bot
-          GIT_AUTHOR_EMAIL: release-bot@example.com
-          GIT_COMMITTER_NAME: Jeff Release Bot
-          GIT_COMMITTER_EMAIL: release-bot@example.com
-        run: |
-          SITE_STAGING=$(mktemp -d)
-          cp -R work/ghpages-site/. "$SITE_STAGING"/
-          git fetch origin gh-pages || true
-          git checkout gh-pages || git checkout --orphan gh-pages
-          git rm -rf . >/dev/null 2>&1 || true
-          git clean -fdx >/dev/null 2>&1 || true
-          cp -R "$SITE_STAGING"/. .
-          rm -rf "$SITE_STAGING"
-          git add --all
-          git commit -m "Publish site for v${{ steps.version.outputs.version }}"
+      - name: Upload GitHub Pages artifact
+        uses: actions/upload-pages-artifact@v3
+        with:
+          path: work/ghpages-site
 
-      - name: Push gh-pages
-        run: git push origin gh-pages
+      - name: Deploy GitHub Pages
+        id: deployment
+        uses: actions/deploy-pages@v4
