@@ -7,6 +7,7 @@ Direct links to current and previous builds.
 
 | Version | Binary | Debian | [Vaultline](https://micwin.github.io/vaultline/)-Version | Notes |
 |---------|--------|--------|-------------------|-------|
+| v0.3.22 | [Binary](https://github.com/micwin/jeff/releases/download/v0.3.22/jeff) | [Debian](https://github.com/micwin/jeff/releases/download/v0.3.22/jeff_0.3.22_amd64.deb) | `0a09bf0036a8` | [Notes](/releases/v0.3.22.html) |
 | v0.3.16 | [Binary](https://github.com/micwin/jeff/releases/download/v0.3.16/jeff) | [Debian](https://github.com/micwin/jeff/releases/download/v0.3.16/jeff_0.3.16_amd64.deb) | _unknown_ | [Notes](/releases/v0.3.16.html) |
 | v0.3.15 | [Binary](https://github.com/micwin/jeff/releases/download/v0.3.15/jeff) | [Debian](https://github.com/micwin/jeff/releases/download/v0.3.15/jeff_0.3.15_amd64.deb) | _unknown_ | [Notes](/releases/v0.3.15.html) |
 | v0.3.12 | [Binary](https://github.com/micwin/jeff/releases/download/v0.3.12/jeff) | [Debian](https://github.com/micwin/jeff/releases/download/v0.3.12/jeff_0.3.12_amd64.deb) | _unknown_ | [Notes](/releases/v0.3.12.html) |
