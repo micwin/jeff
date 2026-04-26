@@ -14,7 +14,7 @@ Operational procedures for Jeff. Update this file whenever the release process, 
    The build embeds configured sidecar tools such as [Vaultline](https://micwin.github.io/vaultline/) from `sidecars/*.conf`; set `JEFF_VAULTLINE_SOURCE=/path/to/vaultline` to override the default local source path. Build metadata is written to `work/sidecars/<name>/metadata.env` and feeds the downloads table.
 3. Execute `smokey --dir tests.d` and ensure all numbered suites pass.
 4. Invoke `scripts/release.sh` to bump versions, cut tags/branches, and publish artifacts/pages. `[TODO] document release.sh flags and CI steps`
-   The release workflow deploys `work/ghpages-site` through GitHub Pages artifacts; it must not publish Pages by switching branches inside the build workspace because ignored build directories can survive branch changes. The deployment job uses the `pages-release` environment so release branches are not blocked by stricter `github-pages` environment protection rules.
+   The release workflow publishes `work/ghpages-site` to the `gh-pages` branch from a fresh publish clone; it must not switch branches inside the build workspace because ignored build directories can survive branch changes.
 5. For cross-version publishing (docs sites, portals), update the dedicated branch (e.g., `ghpages`, `site`) and tag the deployed commit with `GHPAGES_CURRENT`, `SITE_CURRENT`, or another `*_CURRENT` tag.
 6. Post-release, archive artifacts per compliance requirements. `[TODO] add storage location]`
 7. From the release branch, run `scripts/post-release.sh` to fast-forward merge the release back into `develop` once the release is verified.
