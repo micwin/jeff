@@ -21,6 +21,7 @@ Happy hacking!
 - `jeff menu` gives you a simple, nestable menu for frequently used shell shortcuts.
 - `jeff tmux` launches the overlay with a configurable status bar and lets you pop open the menu via `Ctrl-T` while pair-programming in your favorite TUI editor.
 - `jeff tmpl` lets you list, validate, and render reusable template packages (with shell completion for template names).
+- `jeff vl` runs the bundled [Vaultline](https://micwin.github.io/vaultline/) CLI without extracting a helper executable to disk.
 - `jeff codex tui` opens a long-lived Codex session for ongoing conversations.
 - `jeff codex ask` sends a single question to Codex and returns the answer immediately.
 - `jeff completion` installs command completions for bash, zsh, and fish.
@@ -29,6 +30,7 @@ Happy hacking!
 ## Downloads
 
 - [Download overview]({{ "/downloads.html" | relative_url }})
+- [Sidecar build details]({{ "/sidecars.html" | relative_url }})
 
 <!-- latest-release:start -->
 ## Latest Release

@@ -1,0 +1,1 @@
+- feat: embed [Vaultline](https://micwin.github.io/vaultline/) as a Linux memfd sidecar exposed through `jeff vl`, including completion forwarding through the `jeff vl` prefix and release metadata for the bundled [Vaultline](https://micwin.github.io/vaultline/) version.

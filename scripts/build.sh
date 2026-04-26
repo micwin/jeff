@@ -71,6 +71,7 @@ log() {
 clean_artifacts() {
 	log "==> Cleaning build artifacts"
 	rm -rf "$WORK_DIR/go-cache" "$WORK_DIR/go-tmp" "$WORK_DIR/jeff-deb-root"
+	rm -f "$REPO_ROOT/src/jeff/internal/sidecars/embedded/vaultline"
 	if [ -d "$DIST_DIR" ]; then
 		rm -rf "$DIST_DIR"/*
 	fi
@@ -113,10 +114,12 @@ fi
 
 run_compile() {
 	GO_ENV="GOCACHE=$WORK_DIR/go-cache GOTMPDIR=$WORK_DIR/go-tmp"
+	log "==> Sidecars"
+	"$REPO_ROOT/scripts/build-sidecars.sh"
 	log "==> Go tests"
-	(cd "$REPO_ROOT/src/jeff" && env $GO_ENV go test ./...)
+	(cd "$REPO_ROOT/src/jeff" && env $GO_ENV go test -tags sidecars ./...)
 	log "==> Go build"
-	(cd "$REPO_ROOT/src/jeff" && env $GO_ENV go build -o "$DIST_DIR/jeff" ./cmd/jeff)
+	(cd "$REPO_ROOT/src/jeff" && env $GO_ENV go build -tags sidecars -o "$DIST_DIR/jeff" ./cmd/jeff)
 }
 
 build_docs_section() {

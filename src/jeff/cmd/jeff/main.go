@@ -31,6 +31,7 @@ Commands:
   codex       Manage Codex integration (init, ask, tui)
   tmux        Launch the Jeff tmux overlay (requires tmux)
   menu        Manage Jeff's interactive shortcut menu
+  vl          Run embedded Vaultline commands
   tmpl        Manage Jeff templates
   completion  Generate shell completions`, ver)
 
@@ -56,6 +57,7 @@ Commands:
 		newCodexCmd(),
 		newTmuxCmd(),
 		newMenuCmd(),
+		newVaultlineCmd(),
 		newTmplCmd(),
 		newCompletionCmd(cmd),
 		newVersionCmd(),

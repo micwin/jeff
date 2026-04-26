@@ -2,8 +2,8 @@
 
 ## 1. Environment Setup
 1. Clone the repository and ensure you have Go, Rust, Python, and Node.js toolchains available (versions TBD). `[TODO] pin tool versions`
-2. Run `scripts/bootstrap-dev.sh` to install project-specific dependencies, sync Smokey, and configure the `jeff` vaultline store.
-3. Configure your shell to load vaultline secrets (see RUNBOOK.md) before invoking the build or dev commands. `[TODO] document exact vaultline env hooks`
+2. Run `scripts/bootstrap-dev.sh` to install project-specific dependencies, sync Smokey, and configure the `jeff` [Vaultline](https://micwin.github.io/vaultline/) store.
+3. Configure your shell to load [Vaultline](https://micwin.github.io/vaultline/) secrets (see RUNBOOK.md) before invoking the build or dev commands. `[TODO] document exact vaultline env hooks`
 
 ## 2. Repository Conventions
 - Source code for any runtime must live under `src/<capability>` with its build descriptor next to the module (e.g., `src/ingest/Cargo.toml`).
@@ -34,7 +34,7 @@
 - [ ] New modules expose explicit bootstrap files.
 - [ ] Tests exist for each new module and include deterministic fixtures.
 - [ ] Docs (README, RUNBOOK, doc/ pages) updated if behavior or ops change.
-- [ ] Vaultline usage documented when secrets/secrets storage changes.
+- [ ] [Vaultline](https://micwin.github.io/vaultline/) usage documented when secrets/secrets storage changes.
 
 ## 6. Release & Operations
 - Cut release branches as `release/v<major>.<minor>.<patch>` (semantic versioning). Merge them back into `develop` after release verification.

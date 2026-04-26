@@ -37,6 +37,18 @@ mark_done() {
   touch "$STATE_DIR/$1.done"
 }
 
+vaultline_version_label() {
+  metadata="$WORK_DIR/sidecars/vaultline/metadata.env"
+  if [ -f "$metadata" ]; then
+    label=$(awk -F= '$1 == "VAULTLINE_VERSION_LABEL" {print substr($0, length($1) + 2)}' "$metadata" | tail -n 1)
+    if [ -n "$label" ]; then
+      printf '%s' "$label"
+      return
+    fi
+  fi
+  printf 'unknown'
+}
+
 ensure_clean_tree() {
   if [ "$(current_branch)" = "$RELEASE_BRANCH" ]; then
     return
@@ -105,6 +117,7 @@ if not lines:
 print("\n\n".join(lines))
 PY
 )
+  vaultline_label=$(vaultline_version_label)
   cat <<EOF >"$notes_file"
 ---
 layout: page
@@ -120,6 +133,7 @@ title: Release v$RELEASE_VERSION
 - [GitHub Release](https://github.com/micwin/jeff/releases/tag/v$RELEASE_VERSION)
 - [Linux binary](https://github.com/micwin/jeff/releases/download/v$RELEASE_VERSION/jeff)
 - [Debian package](https://github.com/micwin/jeff/releases/download/v$RELEASE_VERSION/jeff_${RELEASE_VERSION}_amd64.deb)
+- Bundled [Vaultline](https://micwin.github.io/vaultline/): \`$vaultline_label\`
 
 ## Changes
 
@@ -179,11 +193,13 @@ EOF
     git add "$downloads_file"
   fi
 
-  python3 - "$downloads_file" "$RELEASE_VERSION" <<'PY'
+  vaultline_label=$(vaultline_version_label)
+  python3 - "$downloads_file" "$RELEASE_VERSION" "$vaultline_label" <<'PY'
 import sys, pathlib
 path = pathlib.Path(sys.argv[1])
 version = sys.argv[2]
-row = f"| v{version} | [Binary](https://github.com/micwin/jeff/releases/download/v{version}/jeff) | [Debian](https://github.com/micwin/jeff/releases/download/v{version}/jeff_{version}_amd64.deb) | [Notes](/releases/v{version}.html) |"
+vaultline = sys.argv[3]
+row = f"| v{version} | [Binary](https://github.com/micwin/jeff/releases/download/v{version}/jeff) | [Debian](https://github.com/micwin/jeff/releases/download/v{version}/jeff_{version}_amd64.deb) | `{vaultline}` | [Notes](/releases/v{version}.html) |"
 lines = path.read_text().splitlines()
 try:
     header_idx = next(i for i, line in enumerate(lines) if line.startswith('| Version'))
@@ -192,6 +208,27 @@ except StopIteration:
 sep_idx = header_idx + 1
 if sep_idx >= len(lines) or not lines[sep_idx].startswith('|---------'):
     raise SystemExit('downloads table separator missing')
+if 'Vaultline' not in lines[header_idx]:
+    header_cells = [cell.strip() for cell in lines[header_idx].strip('|').split('|')]
+    sep_cells = [cell.strip() for cell in lines[sep_idx].strip('|').split('|')]
+    try:
+        notes_idx = header_cells.index('Notes')
+    except ValueError:
+        notes_idx = len(header_cells)
+    header_cells.insert(notes_idx, '[Vaultline](https://micwin.github.io/vaultline/)-Version')
+    sep_cells.insert(notes_idx, '-------------------')
+    migrated = []
+    for line in lines[sep_idx+1:]:
+        if not line.startswith('|'):
+            migrated.append(line)
+            continue
+        cells = [cell.strip() for cell in line.strip('|').split('|')]
+        if len(cells) == len(header_cells) - 1:
+            cells.insert(notes_idx, '_unknown_')
+        migrated.append('| ' + ' | '.join(cells) + ' |')
+    lines[header_idx] = '| ' + ' | '.join(header_cells) + ' |'
+    lines[sep_idx] = '| ' + ' | '.join(sep_cells) + ' |'
+    lines = lines[:sep_idx+1] + migrated
 body = [line for line in lines[sep_idx+1:] if not line.startswith(f"| v{version} ")]
 body.insert(0, row)
 new_lines = lines[:sep_idx+1] + body
