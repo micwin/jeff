@@ -29,6 +29,7 @@ Version: %s
 
 Commands:
   chat        Start the interactive Jeff chat
+  init        Initialize Jeff data defaults
   codex       Configure Jeff's Codex-backed session
   tmux        Launch the Jeff tmux overlay (requires tmux)
   menu        Manage Jeff's interactive shortcut menu
@@ -60,6 +61,7 @@ Commands:
 
 	cmd.AddCommand(
 		newChatCmd(),
+		newInitCmd(),
 		newCodexCmd(),
 		newTmuxCmd(),
 		newMenuCmd(),

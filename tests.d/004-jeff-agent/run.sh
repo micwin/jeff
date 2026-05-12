@@ -30,16 +30,23 @@ export CODEX_HOME
 cp "$FIXTURES_DIR/codex_stub.sh" "$CODEX_STUB"
 chmod +x "$CODEX_STUB"
 
-# Bootstrap deploys the embedded memory castle and creates data subdirectories.
-bootstrap_out=$("$JEFF_BIN" --config "$CONFIG_DIR" agent bootstrap)
-assert_contains "$bootstrap_out" "Agent defaults ready:" "agent bootstrap reports defaults"
+# Init deploys the embedded memory castle and creates data subdirectories.
+init_out=$("$JEFF_BIN" --config "$CONFIG_DIR" init)
+assert_contains "$init_out" "Jeff initialized:" "jeff init reports defaults"
 test -f "$DATA_DIR/jeff/memcastle/castle.md"
 test -f "$DATA_DIR/jeff/memcastle/system.md"
 test -f "$DATA_DIR/jeff/memcastle/gatehouse/index.md"
 test -d "$DATA_DIR/jeff/skills"
 test -d "$DATA_DIR/jeff/reports"
 test -d "$DATA_DIR/jeff/vaultline"
-echo "ok: agent bootstrap creates data layout"
+echo "ok: jeff init creates data layout"
+
+# The old explicit agent bootstrap command is intentionally gone.
+if "$JEFF_BIN" --config "$CONFIG_DIR" agent bootstrap >/tmp/jeff-agent-bootstrap.out 2>&1; then
+	echo "FAIL: agent bootstrap unexpectedly exists" >&2
+	exit 1
+fi
+echo "ok: agent bootstrap is not available"
 
 # Memcastle info prints metadata and a structure-only tree.
 info_out=$("$JEFF_BIN" --config "$CONFIG_DIR" memcastle info)
@@ -57,7 +64,7 @@ search_out=$("$JEFF_BIN" --config "$CONFIG_DIR" memcastle search "persistent  wo
 assert_contains "$search_out" "castle.md:" "memcastle search finds collapsed words"
 assert_contains "$search_out" "file-level whitespace-normalized match" "memcastle search reports cross-line matches"
 
-# Codex init binds the single session and refuses accidental overwrite.
+# Codex init also deploys embedded defaults, binds the single session, and refuses accidental overwrite.
 "$JEFF_BIN" --config "$CONFIG_DIR" codex init smokey-agent --codex-binary "$CODEX_STUB" >/dev/null
 if "$JEFF_BIN" --config "$CONFIG_DIR" codex init other-agent >/tmp/jeff-force.out 2>&1; then
 	echo "FAIL: codex init without --force overwrote existing session" >&2

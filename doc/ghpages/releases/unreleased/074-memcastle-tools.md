@@ -1,1 +1,1 @@
-- feat: add `jeff memcastle info`, offline `search`, castle-only `ask`, and `cleanup`, introduce a `gatehouse` sorting area for unsorted memory, and tighten public prompt guidance against private data in source-controlled defaults.
+- feat: add `jeff init`, `jeff memcastle info`, offline `search`, castle-only `ask`, and `cleanup`, introduce a `gatehouse` sorting area for unsorted memory, and tighten public prompt guidance against private data in source-controlled defaults.

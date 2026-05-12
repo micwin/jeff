@@ -1,6 +1,7 @@
 package main
 
 import (
+	"errors"
 	"fmt"
 	"path/filepath"
 
@@ -13,30 +14,13 @@ func newAgentCmd() *cobra.Command {
 	cmd := &cobra.Command{
 		Use:   "agent",
 		Short: "Manage Jeff's persistent personal agent memory",
-	}
-	cmd.AddCommand(newAgentBootstrapCmd(), newAgentStatusCmd(), newAgentRememberCmd())
-	return cmd
-}
-
-func newAgentBootstrapCmd() *cobra.Command {
-	var force bool
-	cmd := &cobra.Command{
-		Use:   "bootstrap",
-		Short: "Deploy Jeff agent defaults into the data directory",
+		Args:  cobra.NoArgs,
 		RunE: func(cmd *cobra.Command, _ []string) error {
-			ctx, err := commandContextFrom(cmd)
-			if err != nil {
-				return err
-			}
-			result, err := agent.Bootstrap(ctx.store, force)
-			if err != nil {
-				return err
-			}
-			fmt.Fprintf(ctx.stdout, "Agent defaults ready: %d written, %d skipped.\n", len(result.Created), len(result.Skipped))
-			return nil
+			_ = cmd.Help()
+			return errors.New("missing agent subcommand")
 		},
 	}
-	cmd.Flags().BoolVar(&force, "force", false, "Overwrite existing agent default files")
+	cmd.AddCommand(newAgentStatusCmd(), newAgentRememberCmd())
 	return cmd
 }
 
