@@ -11,6 +11,7 @@ DATA_DIR="$SMOKEY_STATE_DIR/jeff-data"
 COMMANDS_DIR="$DATA_DIR/jeff/commands"
 FIXTURES_DIR="$SMOKEY_TEST_DIR/fixtures"
 CODEX_HOME="$SMOKEY_STATE_DIR/codex-home"
+CODEX_STUB="$SMOKEY_STATE_DIR/codex-stub.sh"
 
 assert_contains() {
 	local haystack=$1
@@ -26,19 +27,35 @@ assert_contains() {
 export XDG_DATA_HOME="$DATA_DIR"
 export XDG_CACHE_HOME="$SMOKEY_STATE_DIR/jeff-cache"
 export CODEX_HOME
+cp "$FIXTURES_DIR/codex_stub.sh" "$CODEX_STUB"
+chmod +x "$CODEX_STUB"
 
 # Bootstrap deploys the embedded memory castle and creates data subdirectories.
 bootstrap_out=$("$JEFF_BIN" --config "$CONFIG_DIR" agent bootstrap)
 assert_contains "$bootstrap_out" "Agent defaults ready:" "agent bootstrap reports defaults"
 test -f "$DATA_DIR/jeff/memcastle/castle.md"
 test -f "$DATA_DIR/jeff/memcastle/system.md"
+test -f "$DATA_DIR/jeff/memcastle/gatehouse/index.md"
 test -d "$DATA_DIR/jeff/skills"
 test -d "$DATA_DIR/jeff/reports"
 test -d "$DATA_DIR/jeff/vaultline"
 echo "ok: agent bootstrap creates data layout"
 
+# Memcastle info prints metadata and a structure-only tree.
+info_out=$("$JEFF_BIN" --config "$CONFIG_DIR" memcastle info)
+assert_contains "$info_out" "Wings:    3" "memcastle info counts wings"
+assert_contains "$info_out" "Rooms:    3" "memcastle info counts markdown rooms"
+assert_contains "$info_out" "gatehouse/" "memcastle info shows gatehouse"
+assert_contains "$info_out" "Structure" "memcastle info prints structure"
+assert_contains "$info_out" "|--" "memcastle info uses tree layout"
+
+# Memcastle search is offline, case-insensitive, and tolerates collapsed whitespace.
+search_out=$("$JEFF_BIN" --config "$CONFIG_DIR" memcastle search "persistent  working")
+assert_contains "$search_out" "castle.md:" "memcastle search finds collapsed words"
+assert_contains "$search_out" "file-level whitespace-normalized match" "memcastle search reports cross-line matches"
+
 # Codex init binds the single session and refuses accidental overwrite.
-"$JEFF_BIN" --config "$CONFIG_DIR" codex init smokey-agent >/dev/null
+"$JEFF_BIN" --config "$CONFIG_DIR" codex init smokey-agent --codex-binary "$CODEX_STUB" >/dev/null
 if "$JEFF_BIN" --config "$CONFIG_DIR" codex init other-agent >/tmp/jeff-force.out 2>&1; then
 	echo "FAIL: codex init without --force overwrote existing session" >&2
 	exit 1
@@ -59,6 +76,16 @@ last_out=$("$JEFF_BIN" --config "$CONFIG_DIR" codex init --force --last)
 assert_contains "$last_out" "$last_session" "codex init --last reports resolved session"
 grep -q "\"session_id\": \"$last_session\"" "$CONFIG_DIR/config.json"
 echo "ok: codex init --last stores resolved session"
+
+# Memcastle ask forwards a castle-only prompt to the configured Codex session.
+ask_out=$("$JEFF_BIN" --config "$CONFIG_DIR" memcastle ask "where do secrets live?")
+assert_contains "$ask_out" "Memory castle sources:" "memcastle ask sends castle sources"
+assert_contains "$ask_out" "Do not use web search." "memcastle ask forbids web search"
+
+# Memcastle cleanup asks Codex to sort the gatehouse within the castle root only.
+cleanup_out=$("$JEFF_BIN" --config "$CONFIG_DIR" memcastle cleanup)
+assert_contains "$cleanup_out" "Clean up Jeff's memory castle gatehouse." "memcastle cleanup sends cleanup prompt"
+assert_contains "$cleanup_out" "Work only below this memory castle root:" "memcastle cleanup restricts scope"
 
 # Remember appends to the memory castle logbook.
 remember_out=$("$JEFF_BIN" --config "$CONFIG_DIR" agent remember "finance meeting summary")

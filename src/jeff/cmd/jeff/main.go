@@ -36,6 +36,7 @@ Commands:
   tmpl        Manage Jeff templates
   migrate     Run Jeff user-data migrations
   agent       Manage Jeff's persistent personal agent memory
+  memcastle   Inspect Jeff's persistent memory castle
   execute     Execute stored Jeff Bash commands
   completion  Generate shell completions`, ver)
 
@@ -66,6 +67,7 @@ Commands:
 		newTmplCmd(),
 		newMigrateCmd(),
 		newAgentCmd(),
+		newMemcastleCmd(),
 		newExecuteCmd(),
 		newCompletionCmd(cmd),
 		newVersionCmd(),

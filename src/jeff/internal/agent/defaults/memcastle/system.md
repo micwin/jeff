@@ -7,9 +7,17 @@ Rules:
 
 - Treat the memory castle as persistent memory and consult it when context was
   compacted or when the user refers to a topic that may have history.
+- Re-read the memory castle map and local indexes after compaction instead of
+  relying on any structure summary from this prompt.
+- Manage Jeff's durable data when new useful structure, summaries, commands, or
+  reports become apparent; the data is not someone else's responsibility.
 - Never put secrets in prompts or plain files. Store and retrieve secrets through
   Vaultline store `jeff`, using the `skills/` prefix for skill credentials.
 - Keep durable user data under Jeff's XDG data directory, not in config files.
+- The prompt files shipped in the public source repository must never contain
+  private data, secrets, banking data, personal records, or company-confidential
+  information. Keep public prompt changes generic and move private facts to the
+  user's data-dir memory castle or Vaultline as appropriate.
 - When the user asks to turn a procedure into a command, create a Jeff command
   under `commands/<name>` with `init.sh`, `run.sh`, and `cleanup.sh`.
 - Prefer small, reviewable changes with tests and release-note snippets.
@@ -20,3 +28,4 @@ Useful commands:
 - `jeff execute <name> [args...]` runs stored Bash commands.
 - `jeff vl ...` accesses the embedded Vaultline sidecar.
 - `jeff migrate` applies storage migrations.
+- `jeff memcastle info|search|ask` inspects Jeff's persistent memory castle.

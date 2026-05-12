@@ -1,6 +1,7 @@
 package agent
 
 import (
+	"bufio"
 	"crypto/sha256"
 	"embed"
 	"encoding/hex"
@@ -9,6 +10,7 @@ import (
 	"io/fs"
 	"os"
 	"path/filepath"
+	"regexp"
 	"sort"
 	"strings"
 	"time"
@@ -22,6 +24,23 @@ var defaults embed.FS
 type BootstrapResult struct {
 	Created []string
 	Skipped []string
+}
+
+type CastleInfo struct {
+	Root     string
+	Files    int
+	Wings    int
+	Floors   int
+	Rooms    int
+	Cabinets int
+	Drawers  int
+	Tree     []string
+}
+
+type SearchMatch struct {
+	Path    string
+	Line    int
+	Excerpt string
 }
 
 func Bootstrap(store *config.Store, force bool) (*BootstrapResult, error) {
@@ -54,7 +73,6 @@ func SystemPrompt(store *config.Store) (string, error) {
 	}
 	paths := []string{
 		filepath.Join(agentDir, "system.md"),
-		filepath.Join(agentDir, "castle.md"),
 	}
 	var parts []string
 	for _, path := range paths {
@@ -71,6 +89,250 @@ func SystemPrompt(store *config.Store) (string, error) {
 		}
 	}
 	return strings.Join(parts, "\n\n"), nil
+}
+
+func CastleInfoFor(store *config.Store) (*CastleInfo, error) {
+	agentDir, err := store.AgentDir()
+	if err != nil {
+		return nil, err
+	}
+	info := &CastleInfo{Root: agentDir}
+	err = filepath.WalkDir(agentDir, func(path string, entry fs.DirEntry, walkErr error) error {
+		if walkErr != nil {
+			return walkErr
+		}
+		rel, err := filepath.Rel(agentDir, path)
+		if err != nil {
+			return err
+		}
+		if rel == "." {
+			return nil
+		}
+		if entry.IsDir() {
+			switch entry.Name() {
+			case "wings":
+				return nil
+			case "floors":
+				return nil
+			case "rooms":
+				return nil
+			case "cabinets":
+				return nil
+			case "drawers":
+				return nil
+			}
+			parent := filepath.Base(filepath.Dir(path))
+			switch parent {
+			case "wings":
+				info.Wings++
+			case "floors":
+				info.Floors++
+			case "rooms":
+				info.Rooms++
+			case "cabinets":
+				info.Cabinets++
+			case "drawers":
+				info.Drawers++
+			}
+		} else {
+			info.Files++
+			if entry.Name() == "index.md" {
+				return nil
+			}
+			parent := filepath.Base(filepath.Dir(path))
+			switch parent {
+			case "rooms":
+				info.Rooms++
+			case "cabinets":
+				info.Cabinets++
+			case "drawers":
+				info.Drawers++
+			}
+		}
+		return nil
+	})
+	if err != nil {
+		return nil, fmt.Errorf("walk memory castle: %w", err)
+	}
+	info.Tree, err = structureTree(agentDir)
+	if err != nil {
+		return nil, err
+	}
+	return info, nil
+}
+
+func structureTree(root string) ([]string, error) {
+	var lines []string
+	lines = append(lines, filepath.Base(root)+"/")
+	children, err := treeChildren(root)
+	if err != nil {
+		return nil, err
+	}
+	for index, child := range children {
+		if err := appendTree(root, child, "", index == len(children)-1, &lines); err != nil {
+			return nil, err
+		}
+	}
+	return lines, nil
+}
+
+func appendTree(root, rel, prefix string, last bool, lines *[]string) error {
+	path := filepath.Join(root, filepath.FromSlash(rel))
+	info, err := os.Stat(path)
+	if err != nil {
+		return err
+	}
+	connector := "|-- "
+	nextPrefix := prefix + "|   "
+	if last {
+		connector = "`-- "
+		nextPrefix = prefix + "    "
+	}
+	name := filepath.Base(rel)
+	if info.IsDir() {
+		name += "/"
+	}
+	*lines = append(*lines, prefix+connector+name)
+	if !info.IsDir() {
+		return nil
+	}
+	children, err := treeChildren(path)
+	if err != nil {
+		return err
+	}
+	for index, child := range children {
+		childRel := filepath.ToSlash(filepath.Join(rel, child))
+		if err := appendTree(root, childRel, nextPrefix, index == len(children)-1, lines); err != nil {
+			return err
+		}
+	}
+	return nil
+}
+
+func treeChildren(path string) ([]string, error) {
+	entries, err := os.ReadDir(path)
+	if err != nil {
+		return nil, err
+	}
+	var dirs []string
+	var files []string
+	for _, entry := range entries {
+		if entry.IsDir() {
+			dirs = append(dirs, entry.Name())
+		} else {
+			files = append(files, entry.Name())
+		}
+	}
+	sort.Strings(dirs)
+	sort.Strings(files)
+	return append(dirs, files...), nil
+}
+
+func CastleDocument(store *config.Store) (string, error) {
+	agentDir, err := store.AgentDir()
+	if err != nil {
+		return "", err
+	}
+	var parts []string
+	err = filepath.WalkDir(agentDir, func(path string, entry fs.DirEntry, walkErr error) error {
+		if walkErr != nil {
+			return walkErr
+		}
+		if entry.IsDir() || strings.Contains(filepath.ToSlash(path), "/state/") {
+			return nil
+		}
+		data, err := os.ReadFile(path)
+		if err != nil {
+			return err
+		}
+		rel, err := filepath.Rel(agentDir, path)
+		if err != nil {
+			return err
+		}
+		parts = append(parts, fmt.Sprintf("## %s\n\n%s", filepath.ToSlash(rel), strings.TrimSpace(string(data))))
+		return nil
+	})
+	if err != nil {
+		return "", fmt.Errorf("read memory castle: %w", err)
+	}
+	sort.Strings(parts)
+	return strings.Join(parts, "\n\n---\n\n"), nil
+}
+
+func SearchCastle(store *config.Store, query string, regex bool) ([]SearchMatch, error) {
+	query = strings.TrimSpace(query)
+	if query == "" {
+		return nil, errors.New("search query must not be empty")
+	}
+	agentDir, err := store.AgentDir()
+	if err != nil {
+		return nil, err
+	}
+	var matcher func(string) bool
+	if regex {
+		re, err := regexp.Compile("(?i)" + query)
+		if err != nil {
+			return nil, err
+		}
+		matcher = re.MatchString
+	} else {
+		needle := normalizeSearchText(query)
+		matcher = func(line string) bool {
+			return strings.Contains(normalizeSearchText(line), needle)
+		}
+	}
+	var matches []SearchMatch
+	err = filepath.WalkDir(agentDir, func(path string, entry fs.DirEntry, walkErr error) error {
+		if walkErr != nil {
+			return walkErr
+		}
+		if entry.IsDir() || strings.Contains(filepath.ToSlash(path), "/state/") {
+			return nil
+		}
+		file, err := os.Open(path)
+		if err != nil {
+			return err
+		}
+		defer file.Close()
+		rel, err := filepath.Rel(agentDir, path)
+		if err != nil {
+			return err
+		}
+		var lines []string
+		scanner := bufio.NewScanner(file)
+		lineNo := 0
+		for scanner.Scan() {
+			lineNo++
+			line := scanner.Text()
+			lines = append(lines, line)
+			if matcher(line) {
+				matches = append(matches, SearchMatch{
+					Path:    filepath.ToSlash(rel),
+					Line:    lineNo,
+					Excerpt: strings.TrimSpace(line),
+				})
+			}
+		}
+		if err := scanner.Err(); err != nil {
+			return err
+		}
+		if !regex && len(lines) > 0 && matcher(strings.Join(lines, " ")) {
+			matches = append(matches, SearchMatch{
+				Path:    filepath.ToSlash(rel),
+				Line:    1,
+				Excerpt: "(file-level whitespace-normalized match)",
+			})
+		}
+		return nil
+	})
+	if err != nil {
+		return nil, fmt.Errorf("search memory castle: %w", err)
+	}
+	return matches, nil
+}
+
+func normalizeSearchText(value string) string {
+	return strings.Join(strings.Fields(strings.ToLower(value)), " ")
 }
 
 func PromptInjected(store *config.Store, sessionID string) (bool, error) {

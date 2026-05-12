@@ -6,16 +6,24 @@ about prior conversations, procedures, or personal data structures.
 Search order:
 
 1. Read this castle map.
-2. Pick the likely wing, floor, and room.
+2. Read the nearest `index.md` files for likely wings, floors, rooms, cabinets,
+   and drawers before interpreting their contents.
 3. Search room files first, then wing indexes.
-4. Fall back to the chronological logbook.
-5. Update the room and add a short logbook entry when a durable fact changes.
+4. Fall back to the chronological logbook and the gatehouse.
+5. Update the right room and add a short logbook entry when a durable fact
+   changes. If the right place is unclear, put the material in `gatehouse/`.
 
 Wings:
 
 - `jeff`: Jeff architecture, commands, releases, and operating rules.
 - `finance`: Banking, finance records, API access, reports, and reconciliations.
 - `codex`: Codex session handling, prompts, compaction recovery, and skills.
+
+Gatehouse:
+
+- `gatehouse`: Unsorted intake for files, notes, and observations the human or
+  agent cannot place yet. Treat it as the castle entrance and sorting room, not
+  as permanent storage.
 
 Storage rules:
 

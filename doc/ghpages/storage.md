@@ -30,6 +30,11 @@ Jeff writes Codex-backed chat semaphores below `memcastle/state/sessions/`.
 These local files record whether the Jeff preprompt was already injected for a
 bound chat session.
 
+Use `jeff memcastle info` to inspect the memory castle structure, `jeff
+memcastle search` for offline text search, `jeff memcastle ask` for
+Codex-backed answers constrained to memory castle sources, and `jeff memcastle
+cleanup` to ask Jeff to sort unsorted `gatehouse/` material into the castle.
+
 Jeff-managed Vaultline stores live below `vaultline/stores/`. Jeff keeps the
 `jeff` store's unseal material in `config.json` and passes it transiently to the
 managed Vaultline daemon when it has to restart.
