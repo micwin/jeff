@@ -33,7 +33,14 @@ done
 cat "$HEADER_FILE"
 
 after_prompt() {
-  local answer="Answer: $prompt"
+  local answer
+  if grep -q 'User request:' <<<"$prompt"; then
+    answer="Answer: ${prompt##*User request: }"
+  elif grep -q 'Jeff Agent System Prompt' <<<"$prompt"; then
+    answer="Agent prompt injected"
+  else
+    answer="Answer: $prompt"
+  fi
   if [[ -n "${output_last:-}" && "$output_last" != "-" ]]; then
     printf '%s\n' "$answer" >"$output_last"
   else
@@ -46,4 +53,8 @@ if [[ -n "$prompt" ]]; then
   after_prompt
 else
   printf 'user\nstatus ping\n'
+fi
+
+if [[ -n "${CODEX_STUB_EXIT:-}" ]]; then
+  exit "$CODEX_STUB_EXIT"
 fi

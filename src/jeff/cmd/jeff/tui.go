@@ -7,12 +7,14 @@ import (
 	"strings"
 
 	"github.com/spf13/cobra"
+
+	"jeff/internal/agent"
 )
 
-func newCodexTuiCmd() *cobra.Command {
+func newChatCmd() *cobra.Command {
 	cmd := &cobra.Command{
-		Use:   "tui",
-		Short: "Start an interactive Codex TUI session",
+		Use:   "chat",
+		Short: "Start the interactive Jeff chat",
 		Args:  cobra.NoArgs,
 		RunE: func(cmd *cobra.Command, args []string) error {
 			ctx, err := commandContextFrom(cmd)
@@ -31,12 +33,9 @@ func runTUI(ctx *commandContext) error {
 		return err
 	}
 
-	sessionID := cfg.ActiveSession
+	sessionID := configuredCodexSession(cfg)
 	if sessionID == "" {
-		sessionID = cfg.LastSession
-	}
-	if sessionID == "" {
-		return errors.New("no active session – run 'jeff codex init' first")
+		return errors.New("no active Jeff session - run 'jeff codex init' first")
 	}
 
 	codexBinary := cfg.CodexBinary
@@ -47,8 +46,12 @@ func runTUI(ctx *commandContext) error {
 	args := []string{
 		"--sandbox", "danger-full-access",
 		"--search",
-		"resume", sessionID,
 	}
+	resumeArgs, markInjected, err := chatResumeArgs(ctx, sessionID)
+	if err != nil {
+		return err
+	}
+	args = append(args, resumeArgs...)
 
 	cmd := exec.Command(codexBinary, args...)
 	cmd.Stdout = ctx.stdout
@@ -56,7 +59,22 @@ func runTUI(ctx *commandContext) error {
 	cmd.Stdin = ctx.stdin
 
 	if err := cmd.Run(); err != nil {
-		return fmt.Errorf("codex tui failed: %w", err)
+		if exitErr, ok := err.(*exec.ExitError); ok {
+			if exitErr.ExitCode() < 0 {
+				fmt.Fprintln(ctx.stdout, "Unterirdisch!")
+			} else {
+				fmt.Fprintln(ctx.stdout, "Aaaaaaahhhh")
+			}
+		} else {
+			fmt.Fprintln(ctx.stdout, "Unterirdisch!")
+		}
+		return fmt.Errorf("jeff chat failed: %w", err)
+	}
+	fmt.Fprintln(ctx.stdout, "jeff sagt tschüß")
+	if markInjected {
+		if err := agent.MarkPromptInjected(ctx.store, sessionID); err != nil {
+			return err
+		}
 	}
 
 	cfg.RecordSession(strings.TrimSpace(sessionID))
@@ -65,4 +83,23 @@ func runTUI(ctx *commandContext) error {
 	}
 
 	return nil
+}
+
+func chatResumeArgs(ctx *commandContext, sessionID string) ([]string, bool, error) {
+	injected, err := agent.PromptInjected(ctx.store, sessionID)
+	if err != nil {
+		return nil, false, err
+	}
+	if injected {
+		return codexResumeArgs(sessionID), false, nil
+	}
+	prompt, err := agent.SystemPrompt(ctx.store)
+	if err != nil {
+		return nil, false, err
+	}
+	prompt = strings.TrimSpace(prompt)
+	if prompt == "" {
+		return codexResumeArgs(sessionID), false, nil
+	}
+	return codexResumeArgs(sessionID, prompt), true, nil
 }

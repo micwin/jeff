@@ -7,14 +7,13 @@ import (
 func newCodexCmd() *cobra.Command {
 	cmd := &cobra.Command{
 		Use:   "codex",
-		Short: "Codex integration commands",
-		Long:  "Manage Codex sessions, ask questions, or jump into the full Codex TUI.",
+		Short: "Configure Jeff's Codex-backed session",
+		Long:  "Configure the Codex session Jeff uses internally.",
 	}
 
 	cmd.AddCommand(
 		newCodexInitCmd(),
 		newCodexAskCmd(),
-		newCodexTuiCmd(),
 	)
 
 	return cmd

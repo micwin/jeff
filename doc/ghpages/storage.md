@@ -14,6 +14,36 @@ Jeff separates configuration, user data, cache data, and secrets.
 
 Runtime code must not depend on `tmp/`, and generated build artifacts must remain under `work/` or `dist/`.
 
+## Agent Data
+
+Jeff's personal-agent state lives below the durable user data directory:
+
+```text
+memcastle/   Persistent memory castle, system prompt, wings, rooms, and logbook.
+skills/      User skills and skill metadata. Secret values live in Vaultline.
+commands/    Bash-backed commands executed with `jeff execute <name>`.
+reports/     Generated daily, finance, API, and operational reports.
+vaultline/   Local Vaultline store files for Jeff-scoped secrets.
+```
+
+Jeff writes Codex-backed chat semaphores below `memcastle/state/sessions/`.
+These local files record whether the Jeff preprompt was already injected for a
+bound chat session.
+
+Stored commands use this layout:
+
+```text
+commands/
+  shared/*.sh
+  <name>/
+    init.sh
+    run.sh
+    cleanup.sh
+    files/
+```
+
+`jeff execute <name>` runs in Bash, sources `commands/shared/*.sh`, sources `init.sh`, runs `run.sh`, and then sources `cleanup.sh` through an exit trap when present.
+
 ## Migrations
 
 Jeff records configuration migration state in `config.json` as `schema_version`.

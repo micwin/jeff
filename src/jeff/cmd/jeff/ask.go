@@ -10,6 +10,8 @@ import (
 	"time"
 
 	"github.com/spf13/cobra"
+
+	"jeff/internal/agent"
 )
 
 type askOptions struct {
@@ -57,11 +59,7 @@ func runAsk(ctx *commandContext, opts askOptions) error {
 
 	sessionID := strings.TrimSpace(opts.sessionOverride)
 	if sessionID == "" {
-		if cfg.ActiveSession != "" {
-			sessionID = cfg.ActiveSession
-		} else {
-			sessionID = cfg.LastSession
-		}
+		sessionID = configuredCodexSession(cfg)
 	}
 	if sessionID == "" {
 		return errors.New("no active session – run 'jeff codex init' first")
@@ -91,6 +89,13 @@ func runAsk(ctx *commandContext, opts askOptions) error {
 		return fmt.Errorf("resolve working directory: %w", err)
 	}
 	dirPrefixedQuestion := fmt.Sprintf("You are operating inside %s. %s", workingDir, opts.question)
+	prompt, err := agent.SystemPrompt(ctx.store)
+	if err != nil {
+		return err
+	}
+	if prompt != "" {
+		dirPrefixedQuestion = fmt.Sprintf("%s\n\nCurrent working directory: %s\n\nUser request: %s", prompt, workingDir, opts.question)
+	}
 
 	cmdArgs := []string{
 		"--sandbox", "danger-full-access",
@@ -98,8 +103,8 @@ func runAsk(ctx *commandContext, opts askOptions) error {
 		"exec",
 		"--skip-git-repo-check",
 		"--output-last-message", tmpPath,
-		"resume", sessionID, dirPrefixedQuestion,
 	}
+	cmdArgs = append(cmdArgs, codexResumeArgs(sessionID, dirPrefixedQuestion)...)
 
 	var stdoutBuf, stderrBuf strings.Builder
 	cmd := exec.CommandContext(ctxWithTimeout, codexBinary, cmdArgs...)

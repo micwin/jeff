@@ -9,33 +9,39 @@ import (
 
 	"github.com/spf13/cobra"
 
-	"jeff/internal/config"
+	"jeff/internal/agent"
 )
 
 type initOptions struct {
 	session     string
 	useLast     bool
 	codexBinary string
+	force       bool
 }
 
 func newCodexInitCmd() *cobra.Command {
 	var opts initOptions
 
 	cmd := &cobra.Command{
-		Use:   "init",
-		Short: "Configure or reuse a Codex session ID",
+		Use:   "init [sessionid]",
+		Short: "Initialize Jeff's single Codex agent session",
+		Args:  cobra.MaximumNArgs(1),
 		RunE: func(cmd *cobra.Command, args []string) error {
 			ctx, err := commandContextFrom(cmd)
 			if err != nil {
 				return err
 			}
+			if len(args) > 0 {
+				opts.session = args[0]
+			}
 			return runInit(ctx, opts)
 		},
 	}
 
-	cmd.Flags().StringVar(&opts.session, "session", "", "Explicit Codex session ID")
-	cmd.Flags().BoolVar(&opts.useLast, "last-session", false, "Reuse the latest saved session ID")
+	cmd.Flags().StringVar(&opts.session, "session", "", "Explicit Codex session ID (deprecated; prefer positional sessionid)")
+	cmd.Flags().BoolVar(&opts.useLast, "last", false, "Use the most recent Codex session")
 	cmd.Flags().StringVar(&opts.codexBinary, "codex-binary", "", "Persist a custom Codex CLI path")
+	cmd.Flags().BoolVar(&opts.force, "force", false, "Overwrite an existing Jeff Codex initialization")
 
 	return cmd
 }
@@ -45,9 +51,16 @@ func runInit(ctx *commandContext, opts initOptions) error {
 	if err != nil {
 		return err
 	}
+	if cfg.Codex.Initialized && cfg.Codex.SessionID != "" && !opts.force {
+		return errors.New("jeff codex is already initialized – use --force to overwrite")
+	}
 
-	session, err := determineSession(ctx, cfg, opts)
+	session, err := determineSession(ctx, opts)
 	if err != nil {
+		return err
+	}
+
+	if _, err := agent.Bootstrap(ctx.store, false); err != nil {
 		return err
 	}
 
@@ -62,17 +75,14 @@ func runInit(ctx *commandContext, opts initOptions) error {
 		return err
 	}
 
-	fmt.Fprintf(ctx.stdout, "Session %s saved.\n", session)
+	fmt.Fprintf(ctx.stdout, "Jeff Codex session %s initialized.\n", session)
 	return nil
 }
 
-func determineSession(ctx *commandContext, cfg *config.Config, opts initOptions) (string, error) {
+func determineSession(ctx *commandContext, opts initOptions) (string, error) {
 	switch {
 	case opts.useLast:
-		if cfg.LastSession == "" {
-			return "", errors.New("no previous session found – provide --session")
-		}
-		return cfg.LastSession, nil
+		return resolveLastCodexSessionID()
 	case opts.session != "":
 		return strings.TrimSpace(opts.session), nil
 	default:

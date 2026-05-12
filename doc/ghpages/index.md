@@ -10,8 +10,8 @@ Welcome to the Jeff CLI project! Jeff is your CLI helper with carefully placed b
 ## Getting Started
 
 1. Install the CLI via `scripts/build.sh --compile` (or grab the .deb package).
-2. Configure your Codex session with `jeff codex init`.
-3. Ask questions using `jeff codex ask "What does this repo do?"`.
+2. Configure your Jeff chat with `jeff codex init --last` or `jeff codex init <session-id>`.
+3. Start your Jeff chat with `jeff chat`.
 4. Launch the tmux overlay with `jeff tmux` (Ctrl-T opens the quick menu).
 
 Happy hacking!
@@ -22,8 +22,9 @@ Happy hacking!
 - `jeff tmux` launches the overlay with a configurable status bar and lets you pop open the menu via `Ctrl-T` while pair-programming in your favorite TUI editor.
 - `jeff tmpl` lets you list, validate, and render reusable template packages (with shell completion for template names).
 - `jeff vl` runs the bundled [Vaultline](https://micwin.github.io/vaultline/) CLI without extracting a helper executable to disk.
-- `jeff codex tui` opens a long-lived Codex session for ongoing conversations.
-- `jeff codex ask` sends a single question to Codex and returns the answer immediately.
+- `jeff agent` bootstraps Jeff's memory castle and persistent personal-agent data under the XDG data directory.
+- `jeff chat` opens the long-lived Jeff agent session for ongoing conversations.
+- `jeff execute` runs Bash-backed user commands stored under Jeff's data directory, with completion for command names.
 - `jeff completion` installs command completions for bash, zsh, and fish.
 
 

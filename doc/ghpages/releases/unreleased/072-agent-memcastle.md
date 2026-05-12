@@ -1,0 +1,1 @@
+- feat: bootstrap Jeff's personal-agent memory castle, add `jeff chat`, resolve existing Codex sessions with `jeff codex init --last`, inject the persisted agent prompt once per chat session via a data-dir semaphore, and add Bash-backed `jeff execute` commands with completion from the XDG data directory.

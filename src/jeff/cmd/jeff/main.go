@@ -28,12 +28,15 @@ func newRootCommand() *cobra.Command {
 Version: %s
 
 Commands:
-  codex       Manage Codex integration (init, ask, tui)
+  chat        Start the interactive Jeff chat
+  codex       Configure Jeff's Codex-backed session
   tmux        Launch the Jeff tmux overlay (requires tmux)
   menu        Manage Jeff's interactive shortcut menu
   vl          Run embedded Vaultline commands
   tmpl        Manage Jeff templates
   migrate     Run Jeff user-data migrations
+  agent       Manage Jeff's persistent personal agent memory
+  execute     Execute stored Jeff Bash commands
   completion  Generate shell completions`, ver)
 
 	cmd := &cobra.Command{
@@ -55,12 +58,15 @@ Commands:
 	}
 
 	cmd.AddCommand(
+		newChatCmd(),
 		newCodexCmd(),
 		newTmuxCmd(),
 		newMenuCmd(),
 		newVaultlineCmd(),
 		newTmplCmd(),
 		newMigrateCmd(),
+		newAgentCmd(),
+		newExecuteCmd(),
 		newCompletionCmd(cmd),
 		newVersionCmd(),
 	)

@@ -32,7 +32,13 @@ type Config struct {
 	SessionHistory []string          `json:"session_history,omitempty"`
 	CompletionDir  string            `json:"completion_dir,omitempty"`
 	CodexBinary    string            `json:"codex_binary,omitempty"`
+	Codex          CodexConfig       `json:"codex,omitempty"`
 	ShellStatus    ShellStatusConfig `json:"shell_status,omitempty"`
+}
+
+type CodexConfig struct {
+	SessionID   string `json:"session_id,omitempty"`
+	Initialized bool   `json:"initialized,omitempty"`
 }
 
 type TmuxMenuEntry struct {
@@ -110,6 +116,51 @@ func (s *Store) DataDir() (string, error) {
 // CacheDir reports the XDG cache directory Jeff uses for rebuildable data.
 func (s *Store) CacheDir() (string, error) {
 	return defaultCacheDir()
+}
+
+// AgentDir reports where Jeff keeps its persistent agent memory.
+func (s *Store) AgentDir() (string, error) {
+	dataDir, err := s.DataDir()
+	if err != nil {
+		return "", err
+	}
+	return filepath.Join(dataDir, "memcastle"), nil
+}
+
+// CommandsDir reports where user-defined executable Jeff commands live.
+func (s *Store) CommandsDir() (string, error) {
+	dataDir, err := s.DataDir()
+	if err != nil {
+		return "", err
+	}
+	return filepath.Join(dataDir, "commands"), nil
+}
+
+// SkillsDir reports where user-defined Jeff skills live.
+func (s *Store) SkillsDir() (string, error) {
+	dataDir, err := s.DataDir()
+	if err != nil {
+		return "", err
+	}
+	return filepath.Join(dataDir, "skills"), nil
+}
+
+// ReportsDir reports where generated Jeff reports live.
+func (s *Store) ReportsDir() (string, error) {
+	dataDir, err := s.DataDir()
+	if err != nil {
+		return "", err
+	}
+	return filepath.Join(dataDir, "reports"), nil
+}
+
+// VaultlineDir reports where Jeff keeps its local Vaultline store files.
+func (s *Store) VaultlineDir() (string, error) {
+	dataDir, err := s.DataDir()
+	if err != nil {
+		return "", err
+	}
+	return filepath.Join(dataDir, "vaultline"), nil
 }
 
 // CompletionDir determines the directory where completion scripts should live.
@@ -227,6 +278,8 @@ func (c *Config) RecordSession(session string) {
 	}
 	c.ActiveSession = session
 	c.LastSession = session
+	c.Codex.SessionID = session
+	c.Codex.Initialized = true
 
 	if !slices.Contains(c.SessionHistory, session) {
 		c.SessionHistory = append(c.SessionHistory, session)
@@ -270,6 +323,15 @@ func DefaultShellStatusConfig() ShellStatusConfig {
 func (c *Config) applyDefaults() {
 	if c.SchemaVersion <= 0 {
 		c.SchemaVersion = CurrentSchemaVersion
+	}
+	if c.Codex.SessionID == "" {
+		c.Codex.SessionID = c.ActiveSession
+	}
+	if c.Codex.SessionID == "" {
+		c.Codex.SessionID = c.LastSession
+	}
+	if c.Codex.SessionID != "" && !c.Codex.Initialized {
+		c.Codex.Initialized = true
 	}
 	if c.CodexBinary == "" {
 		c.CodexBinary = defaultCodexBin
