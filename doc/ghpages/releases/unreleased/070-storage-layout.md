@@ -1,1 +1,0 @@
-- docs: define Jeff's storage split for configuration, durable user data, cache data, and Vaultline-backed secrets before finance and banking features land.
