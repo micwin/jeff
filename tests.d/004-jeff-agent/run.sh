@@ -1,5 +1,5 @@
 #!/usr/bin/env bash
-# Smokey test: validates agent bootstrap, memory logging, and stored commands.
+# Smokey test: validates Jeff init, memory logging, and stored commands.
 
 set -euo pipefail
 
@@ -36,6 +36,8 @@ assert_contains "$init_out" "Jeff initialized:" "jeff init reports defaults"
 test -f "$DATA_DIR/jeff/memcastle/castle.md"
 test -f "$DATA_DIR/jeff/memcastle/system.md"
 test -f "$DATA_DIR/jeff/memcastle/gatehouse/index.md"
+test -f "$DATA_DIR/jeff/memcastle/finance/banking/api-access.md"
+test ! -d "$DATA_DIR/jeff/memcastle/wings"
 test -d "$DATA_DIR/jeff/skills"
 test -d "$DATA_DIR/jeff/reports"
 test -d "$DATA_DIR/jeff/vaultline"
@@ -54,6 +56,7 @@ assert_contains "$info_out" "Root: $DATA_DIR/jeff/memcastle" "memcastle info use
 assert_contains "$info_out" "Wings:" "memcastle info prints wing count"
 assert_contains "$info_out" "Rooms:" "memcastle info prints room count"
 assert_contains "$info_out" "gatehouse/" "memcastle info shows gatehouse"
+assert_contains "$info_out" "finance/" "memcastle info shows flat wings"
 assert_contains "$info_out" "Structure" "memcastle info prints structure"
 assert_contains "$info_out" "|--" "memcastle info uses tree layout"
 mc_info_out=$("$JEFF_BIN" --config "$CONFIG_DIR" mc info)

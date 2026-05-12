@@ -33,6 +33,7 @@ type migration struct {
 
 var all = []migration{
 	{version: 1, run: migrateDurableDataOutOfConfig},
+	{version: 2, run: migrateFlatMemcastleLayout},
 }
 
 // Run applies all pending migrations for the provided store.
@@ -139,6 +140,109 @@ func legacyDurableNames() []string {
 		"banking.json",
 		"banking.db",
 	}
+}
+
+func migrateFlatMemcastleLayout(store *config.Store, result *Result) error {
+	agentDir, err := store.AgentDir()
+	if err != nil {
+		return err
+	}
+	moves := []Move{
+		{
+			From: filepath.Join(agentDir, "wings", "codex", "index.md"),
+			To:   filepath.Join(agentDir, "codex", "index.md"),
+		},
+		{
+			From: filepath.Join(agentDir, "wings", "codex", "floors", "sessions", "rooms", "session.md"),
+			To:   filepath.Join(agentDir, "codex", "sessions.md"),
+		},
+		{
+			From: filepath.Join(agentDir, "wings", "finance", "index.md"),
+			To:   filepath.Join(agentDir, "finance", "index.md"),
+		},
+		{
+			From: filepath.Join(agentDir, "wings", "finance", "floors", "banking", "index.md"),
+			To:   filepath.Join(agentDir, "finance", "banking", "index.md"),
+		},
+		{
+			From: filepath.Join(agentDir, "wings", "finance", "floors", "banking", "rooms", "api-access.md"),
+			To:   filepath.Join(agentDir, "finance", "banking", "api-access.md"),
+		},
+		{
+			From: filepath.Join(agentDir, "wings", "jeff", "index.md"),
+			To:   filepath.Join(agentDir, "jeff", "index.md"),
+		},
+		{
+			From: filepath.Join(agentDir, "wings", "jeff", "floors", "architecture", "index.md"),
+			To:   filepath.Join(agentDir, "jeff", "architecture", "index.md"),
+		},
+		{
+			From: filepath.Join(agentDir, "wings", "jeff", "floors", "architecture", "rooms", "storage.md"),
+			To:   filepath.Join(agentDir, "jeff", "architecture", "storage.md"),
+		},
+	}
+	for _, move := range moves {
+		if err := moveIfPresent(move, result); err != nil {
+			return err
+		}
+	}
+	_ = removeEmptyDirs(filepath.Join(agentDir, "wings"))
+	return nil
+}
+
+func moveIfPresent(move Move, result *Result) error {
+	exists, err := pathExists(move.From)
+	if err != nil {
+		return err
+	}
+	if !exists {
+		return nil
+	}
+	toExists, err := pathExists(move.To)
+	if err != nil {
+		return err
+	}
+	if toExists {
+		move.Reason = "destination exists"
+		result.Skipped = append(result.Skipped, move)
+		return nil
+	}
+	if err := os.MkdirAll(filepath.Dir(move.To), 0o755); err != nil {
+		return fmt.Errorf("create memcastle dir: %w", err)
+	}
+	if err := os.Rename(move.From, move.To); err != nil {
+		return fmt.Errorf("move %s to %s: %w", move.From, move.To, err)
+	}
+	result.Moved = append(result.Moved, move)
+	return nil
+}
+
+func removeEmptyDirs(root string) error {
+	entries, err := os.ReadDir(root)
+	if errors.Is(err, os.ErrNotExist) {
+		return nil
+	}
+	if err != nil {
+		return err
+	}
+	for _, entry := range entries {
+		if entry.IsDir() {
+			if err := removeEmptyDirs(filepath.Join(root, entry.Name())); err != nil {
+				return err
+			}
+		}
+	}
+	entries, err = os.ReadDir(root)
+	if errors.Is(err, os.ErrNotExist) {
+		return nil
+	}
+	if err != nil {
+		return err
+	}
+	if len(entries) == 0 {
+		return os.Remove(root)
+	}
+	return nil
 }
 
 func readSchemaVersion(path string) (int, error) {

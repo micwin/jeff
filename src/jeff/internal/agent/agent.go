@@ -108,30 +108,23 @@ func CastleInfoFor(store *config.Store) (*CastleInfo, error) {
 		if rel == "." {
 			return nil
 		}
+		slashRel := filepath.ToSlash(rel)
+		if strings.HasPrefix(slashRel, "state/") || strings.HasPrefix(slashRel, "logbook/") {
+			return nil
+		}
+		parts := strings.Split(slashRel, "/")
 		if entry.IsDir() {
-			switch entry.Name() {
-			case "wings":
-				return nil
-			case "floors":
-				return nil
-			case "rooms":
-				return nil
-			case "cabinets":
-				return nil
-			case "drawers":
-				return nil
-			}
-			parent := filepath.Base(filepath.Dir(path))
-			switch parent {
-			case "wings":
+			switch len(parts) {
+			case 1:
+				if entry.Name() == "gatehouse" {
+					return nil
+				}
 				info.Wings++
-			case "floors":
+			case 2:
 				info.Floors++
-			case "rooms":
-				info.Rooms++
-			case "cabinets":
+			case 3:
 				info.Cabinets++
-			case "drawers":
+			case 4:
 				info.Drawers++
 			}
 		} else {
@@ -139,14 +132,8 @@ func CastleInfoFor(store *config.Store) (*CastleInfo, error) {
 			if entry.Name() == "index.md" {
 				return nil
 			}
-			parent := filepath.Base(filepath.Dir(path))
-			switch parent {
-			case "rooms":
+			if len(parts) >= 2 {
 				info.Rooms++
-			case "cabinets":
-				info.Cabinets++
-			case "drawers":
-				info.Drawers++
 			}
 		}
 		return nil

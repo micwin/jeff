@@ -34,6 +34,8 @@ Use `jeff memcastle info` to inspect the memory castle structure, `jeff
 memcastle search` for offline text search, `jeff memcastle ask` for
 Codex-backed answers constrained to memory castle sources, and `jeff memcastle
 cleanup` to ask Jeff to sort unsorted `gatehouse/` material into the castle.
+Top-level directories below `memcastle/` are wings. Nested directories are topic
+areas, and Markdown files are rooms or focused notes.
 
 Jeff-managed Vaultline stores live below `vaultline/stores/`. Jeff keeps the
 `jeff` store's unseal material in `config.json` and passes it transiently to the

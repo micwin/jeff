@@ -6,8 +6,8 @@ about prior conversations, procedures, or personal data structures.
 Search order:
 
 1. Read this castle map.
-2. Read the nearest `index.md` files for likely wings, floors, rooms, cabinets,
-   and drawers before interpreting their contents.
+2. Read the nearest `index.md` files for likely wings and topic folders before
+   interpreting their contents.
 3. Search room files first, then wing indexes.
 4. Fall back to the chronological logbook and the gatehouse.
 5. Update the right room and add a short logbook entry when a durable fact
@@ -18,6 +18,13 @@ Wings:
 - `jeff`: Jeff architecture, commands, releases, and operating rules.
 - `finance`: Banking, finance records, API access, reports, and reconciliations.
 - `codex`: Codex session handling, prompts, compaction recovery, and skills.
+
+Layout:
+
+- Top-level directories such as `jeff/`, `finance/`, and `codex/` are wings.
+- Subdirectories below a wing are topic areas.
+- Markdown files are rooms or focused notes.
+- `index.md` files explain what belongs in the current directory.
 
 Gatehouse:
 

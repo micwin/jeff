@@ -76,3 +76,43 @@ func TestRunDoesNotCreateConfigForEmptyInstall(t *testing.T) {
 		t.Fatalf("config should not be created for empty install: %v", err)
 	}
 }
+
+func TestRunFlattensMemcastleLayout(t *testing.T) {
+	home := t.TempDir()
+	configRoot := filepath.Join(home, "config")
+	dataRoot := filepath.Join(home, "data")
+	t.Setenv("XDG_CONFIG_HOME", configRoot)
+	t.Setenv("XDG_DATA_HOME", dataRoot)
+
+	store, err := config.NewStore("")
+	if err != nil {
+		t.Fatalf("create store: %v", err)
+	}
+	oldRoom := filepath.Join(dataRoot, "jeff", "memcastle", "wings", "finance", "floors", "banking", "rooms")
+	if err := os.MkdirAll(oldRoom, 0o755); err != nil {
+		t.Fatalf("create old room: %v", err)
+	}
+	if err := os.WriteFile(filepath.Join(oldRoom, "api-access.md"), []byte("# API\n"), 0o600); err != nil {
+		t.Fatalf("write old room file: %v", err)
+	}
+	if err := os.MkdirAll(filepath.Dir(store.ConfigPath()), 0o755); err != nil {
+		t.Fatalf("create config dir: %v", err)
+	}
+	if err := os.WriteFile(store.ConfigPath(), []byte(`{"schema_version":1}`+"\n"), 0o600); err != nil {
+		t.Fatalf("write config: %v", err)
+	}
+
+	result, err := Run(store, nil)
+	if err != nil {
+		t.Fatalf("run migrations: %v", err)
+	}
+	if len(result.Moved) != 1 {
+		t.Fatalf("expected one moved path, got %+v", result.Moved)
+	}
+	if _, err := os.Stat(filepath.Join(dataRoot, "jeff", "memcastle", "finance", "banking", "api-access.md")); err != nil {
+		t.Fatalf("flattened room missing: %v", err)
+	}
+	if _, err := os.Stat(filepath.Join(dataRoot, "jeff", "memcastle", "wings")); !os.IsNotExist(err) {
+		t.Fatalf("old wings directory should be removed when empty: %v", err)
+	}
+}

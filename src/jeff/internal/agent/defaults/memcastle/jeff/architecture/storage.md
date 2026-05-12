@@ -1,4 +1,4 @@
-# Storage Room
+# Storage
 
 Jeff separates data by durability and sensitivity:
 

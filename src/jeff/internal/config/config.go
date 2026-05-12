@@ -11,7 +11,7 @@ import (
 
 const (
 	appName              = "jeff"
-	CurrentSchemaVersion = 1
+	CurrentSchemaVersion = 2
 	configFileName       = "config.json"
 	menuFileName         = "menu.json"
 	completionFolder     = "completions"
