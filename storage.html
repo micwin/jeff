@@ -94,6 +94,13 @@ vaultline/   Local Vaultline store files for Jeff-scoped secrets.
 These local files record whether the Jeff preprompt was already injected for a
 bound chat session.</p>
 
+<p>Use <code class="language-plaintext highlighter-rouge">jeff memcastle info</code> to inspect the memory castle structure, <code class="language-plaintext highlighter-rouge">jeff
+memcastle search</code> for offline text search, <code class="language-plaintext highlighter-rouge">jeff memcastle ask</code> for
+Codex-backed answers constrained to memory castle sources, and <code class="language-plaintext highlighter-rouge">jeff memcastle
+cleanup</code> to ask Jeff to sort unsorted <code class="language-plaintext highlighter-rouge">gatehouse/</code> material into the castle.
+Top-level directories below <code class="language-plaintext highlighter-rouge">memcastle/</code> are wings. Nested directories are topic
+areas, and Markdown files are rooms or focused notes.</p>
+
 <p>Jeff-managed Vaultline stores live below <code class="language-plaintext highlighter-rouge">vaultline/stores/</code>. Jeff keeps the
 <code class="language-plaintext highlighter-rouge">jeff</code> store’s unseal material in <code class="language-plaintext highlighter-rouge">config.json</code> and passes it transiently to the
 managed Vaultline daemon when it has to restart.</p>
