@@ -144,7 +144,7 @@ EOF
 fi
 
   index_file="$REPO_ROOT/doc/ghpages/index.md"
-  latest_block="<!-- latest-release:start -->\n## Latest Release\n\n- [Download Jeff v$RELEASE_VERSION](https://github.com/micwin/jeff/releases/tag/v$RELEASE_VERSION)\n- [Release notes](/releases/v$RELEASE_VERSION.html)\n<!-- latest-release:end -->"
+  latest_block="<!-- latest-release:start -->\n## Latest Release\n\n- [Download Jeff v$RELEASE_VERSION](https://github.com/micwin/jeff/releases/tag/v$RELEASE_VERSION)\n- [Release notes]({{ \"/releases/v$RELEASE_VERSION.html\" | relative_url }})\n<!-- latest-release:end -->"
   if grep -q "latest-release:start" "$index_file"; then
     python3 - "$index_file" "$latest_block" <<'PY'
 import sys, pathlib
@@ -199,7 +199,7 @@ import sys, pathlib
 path = pathlib.Path(sys.argv[1])
 version = sys.argv[2]
 vaultline = sys.argv[3]
-row = f"| v{version} | [Binary](https://github.com/micwin/jeff/releases/download/v{version}/jeff) | [Debian](https://github.com/micwin/jeff/releases/download/v{version}/jeff_{version}_amd64.deb) | `{vaultline}` | [Notes](/releases/v{version}.html) |"
+row = f"| v{version} | [Binary](https://github.com/micwin/jeff/releases/download/v{version}/jeff) | [Debian](https://github.com/micwin/jeff/releases/download/v{version}/jeff_{version}_amd64.deb) | `{vaultline}` | [Notes]({{{{ \"/releases/v{version}.html\" | relative_url }}}}) |"
 lines = path.read_text().splitlines()
 try:
     header_idx = next(i for i, line in enumerate(lines) if line.startswith('| Version'))

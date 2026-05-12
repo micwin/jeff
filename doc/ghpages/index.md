@@ -36,5 +36,5 @@ Happy hacking!
 ## Latest Release
 
 - [Download Jeff v0.3.23](https://github.com/micwin/jeff/releases/tag/v0.3.23)
-- [Release notes](/releases/v0.3.23.html)
+- [Release notes]({{ "/releases/v0.3.23.html" | relative_url }})
 <!-- latest-release:end -->
