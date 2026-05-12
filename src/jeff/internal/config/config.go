@@ -33,12 +33,17 @@ type Config struct {
 	CompletionDir  string            `json:"completion_dir,omitempty"`
 	CodexBinary    string            `json:"codex_binary,omitempty"`
 	Codex          CodexConfig       `json:"codex,omitempty"`
+	Vaultline      VaultlineConfig   `json:"vaultline,omitempty"`
 	ShellStatus    ShellStatusConfig `json:"shell_status,omitempty"`
 }
 
 type CodexConfig struct {
 	SessionID   string `json:"session_id,omitempty"`
 	Initialized bool   `json:"initialized,omitempty"`
+}
+
+type VaultlineConfig struct {
+	JeffStorePassphrase string `json:"jeff_store_passphrase,omitempty"`
 }
 
 type TmuxMenuEntry struct {

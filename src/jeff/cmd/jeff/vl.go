@@ -4,6 +4,7 @@ import (
 	"context"
 	"errors"
 	"fmt"
+	"io"
 	"strings"
 
 	"github.com/spf13/cobra"
@@ -32,6 +33,24 @@ func newVaultlineCmd() *cobra.Command {
 }
 
 func runVaultline(runCtx context.Context, ctx *commandContext, args []string) error {
+	args, err := normalizeVaultlineArgs(ctx, args)
+	if err != nil {
+		return err
+	}
+	if vaultlineRawPassthrough(args) {
+		return runVaultlineSidecar(runCtx, args, ctx)
+	}
+	if len(args) > 0 && args[0] == "daemon-stop" {
+		return stopManagedVaultline(runCtx, ctx)
+	}
+	managedArgs, err := managedVaultlineArgs(runCtx, ctx, args)
+	if err != nil {
+		return err
+	}
+	return runVaultlineSidecar(runCtx, managedArgs, ctx)
+}
+
+func runVaultlineSidecar(runCtx context.Context, args []string, ctx *commandContext) error {
 	err := sidecars.Run(runCtx, "vaultline", args, sidecars.Stdio{
 		Stdin:  ctx.stdin,
 		Stdout: ctx.stdout,
@@ -47,8 +66,34 @@ func runVaultline(runCtx context.Context, ctx *commandContext, args []string) er
 }
 
 func completeVaultline(cmd *cobra.Command, args []string, toComplete string) ([]string, cobra.ShellCompDirective) {
-	completeArgs := append([]string{"__complete", toComplete}, args...)
-	out, err := sidecars.Output(cmd.Context(), "vaultline", completeArgs)
+	ctx, err := commandContextFrom(cmd)
+	if err != nil {
+		store, storeErr := cachedStore(configDir)
+		if storeErr != nil {
+			return nil, cobra.ShellCompDirectiveNoFileComp
+		}
+		ctx = &commandContext{
+			stdin:  nil,
+			stdout: io.Discard,
+			stderr: io.Discard,
+			store:  store,
+		}
+	}
+	args, err = normalizeVaultlineArgs(ctx, args)
+	if err != nil {
+		return nil, cobra.ShellCompDirectiveNoFileComp
+	}
+	completeArgs := []string{"__complete", toComplete}
+	for _, arg := range args {
+		if arg != "" {
+			completeArgs = append(completeArgs, arg)
+		}
+	}
+	managedArgs, err := managedVaultlineArgs(cmd.Context(), ctx, completeArgs)
+	if err != nil {
+		return nil, cobra.ShellCompDirectiveNoFileComp
+	}
+	out, err := sidecars.Output(cmd.Context(), "vaultline", managedArgs)
 	if err != nil {
 		return nil, cobra.ShellCompDirectiveNoFileComp
 	}
@@ -61,4 +106,44 @@ func completeVaultline(cmd *cobra.Command, args []string, toComplete string) ([]
 		}
 	}
 	return items, directive
+}
+
+func vaultlineRawPassthrough(args []string) bool {
+	if len(args) == 0 {
+		return true
+	}
+	switch args[0] {
+	case "version", "--version", "help", "--help", "-h", "completion":
+		return true
+	default:
+		return false
+	}
+}
+
+func normalizeVaultlineArgs(ctx *commandContext, args []string) ([]string, error) {
+	normalized := make([]string, 0, len(args))
+	for i := 0; i < len(args); i++ {
+		arg := args[i]
+		switch {
+		case arg == "--config":
+			if i+1 >= len(args) {
+				return nil, fmt.Errorf("--config requires a value")
+			}
+			store, err := cachedStore(args[i+1])
+			if err != nil {
+				return nil, err
+			}
+			ctx.store = store
+			i++
+		case strings.HasPrefix(arg, "--config="):
+			store, err := cachedStore(strings.TrimPrefix(arg, "--config="))
+			if err != nil {
+				return nil, err
+			}
+			ctx.store = store
+		default:
+			normalized = append(normalized, arg)
+		}
+	}
+	return normalized, nil
 }

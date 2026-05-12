@@ -1,0 +1,1 @@
+- feat: route `jeff vl` through a managed Jeff-local Vaultline daemon, store Jeff secrets under the XDG data directory, and keep the `jeff` store unseal material in Jeff config instead of Vaultline config.

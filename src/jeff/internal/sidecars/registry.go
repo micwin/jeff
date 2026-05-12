@@ -5,6 +5,7 @@ import (
 	"errors"
 	"fmt"
 	"io"
+	"os"
 	"os/exec"
 	"strings"
 )
@@ -28,19 +29,35 @@ func Lookup(name string) (Tool, bool) {
 }
 
 func Run(ctx context.Context, name string, args []string, stdio Stdio) error {
+	return RunWithEnv(ctx, name, args, stdio, nil)
+}
+
+func RunWithEnv(ctx context.Context, name string, args []string, stdio Stdio, env []string) error {
 	tool, ok := Lookup(name)
 	if !ok {
 		return fmt.Errorf("%w: %s", ErrNotFound, name)
 	}
-	return runMemfd(ctx, tool, args, stdio)
+	return runMemfd(ctx, tool, args, stdio, env)
 }
 
 func Output(ctx context.Context, name string, args []string) ([]byte, error) {
+	return OutputWithEnv(ctx, name, args, nil)
+}
+
+func OutputWithEnv(ctx context.Context, name string, args []string, env []string) ([]byte, error) {
 	tool, ok := Lookup(name)
 	if !ok {
 		return nil, fmt.Errorf("%w: %s", ErrNotFound, name)
 	}
-	return outputMemfd(ctx, tool, args)
+	return outputMemfd(ctx, tool, args, env)
+}
+
+func Start(ctx context.Context, name string, args []string, stdio Stdio, env []string) (*os.Process, error) {
+	tool, ok := Lookup(name)
+	if !ok {
+		return nil, fmt.Errorf("%w: %s", ErrNotFound, name)
+	}
+	return startMemfd(ctx, tool, args, stdio, env)
 }
 
 func IsExecutableError(err error) bool {

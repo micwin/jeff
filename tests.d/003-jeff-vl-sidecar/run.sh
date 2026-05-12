@@ -3,7 +3,20 @@
 
 set -euo pipefail
 
-JEFF_BIN="$SMOKEY_TEST_ROOT/../dist/jeff"
+REPO_ROOT=$(cd "$SMOKEY_TEST_ROOT/.." && pwd)
+
+JEFF_BIN="$REPO_ROOT/dist/jeff"
+CONFIG_DIR="$SMOKEY_STATE_DIR/jeff-vl-config"
+DATA_DIR="$SMOKEY_STATE_DIR/jeff-vl-data"
+CACHE_DIR="$SMOKEY_STATE_DIR/jeff-vl-cache"
+
+export XDG_DATA_HOME="$DATA_DIR"
+export XDG_CACHE_HOME="$CACHE_DIR"
+
+cleanup() {
+  "$JEFF_BIN" --config "$CONFIG_DIR" vl daemon-stop >/dev/null 2>&1 || true
+}
+trap cleanup EXIT
 
 # Execute the embedded sidecar and expect Vaultline to report a semantic version.
 version_out=$("$JEFF_BIN" vl version)
@@ -15,7 +28,7 @@ fi
 echo "ok: jeff vl executes the embedded vaultline sidecar"
 
 # Ask Jeff's completion bridge for top-level Vaultline commands and expect secret support.
-top_level=$("$JEFF_BIN" __complete vl "" 2>/dev/null)
+top_level=$("$JEFF_BIN" --config "$CONFIG_DIR" __complete vl "" 2>/dev/null)
 if ! grep -qx 'secret' <<<"$top_level"; then
   printf 'FAIL: vaultline top-level completion missing secret\n%s\n' "$top_level" >&2
   exit 1
@@ -24,10 +37,33 @@ fi
 echo "ok: jeff vl forwards top-level completions"
 
 # Ask completion for a nested Vaultline command and expect secret subcommands through the jeff vl prefix.
-secret_level=$("$JEFF_BIN" __complete vl secret "" 2>/dev/null)
+secret_level=$("$JEFF_BIN" --config "$CONFIG_DIR" __complete vl secret "" 2>/dev/null)
 if ! grep -qx 'get' <<<"$secret_level"; then
   printf 'FAIL: vaultline nested completion missing secret get\n%s\n' "$secret_level" >&2
   exit 1
 fi
 
 echo "ok: jeff vl forwards nested completions"
+
+# Store and fetch a secret through Jeff's managed Vaultline daemon and local jeff store.
+"$JEFF_BIN" --config "$CONFIG_DIR" vl secret set jeff:smokey-test --value local-value >/dev/null
+secret_out=$("$JEFF_BIN" --config "$CONFIG_DIR" vl secret get jeff:smokey-test)
+if [[ "$secret_out" != "local-value" ]]; then
+  printf 'FAIL: unexpected managed vaultline secret value: %s\n' "$secret_out" >&2
+  exit 1
+fi
+
+echo "ok: jeff vl stores secrets in the managed jeff store"
+
+# Jeff keeps the jeff-store passphrase in Jeff config, not Vaultline's store registry.
+if ! grep -q '"jeff_store_passphrase"' "$CONFIG_DIR/config.json"; then
+  echo "FAIL: Jeff config missing managed Vaultline passphrase" >&2
+  exit 1
+fi
+if grep -q '"passphrase"' "$DATA_DIR/jeff/vaultline/stores.json"; then
+  echo "FAIL: Vaultline store config unexpectedly contains a passphrase" >&2
+  exit 1
+fi
+test -f "$DATA_DIR/jeff/vaultline/stores/jeff/secrets/smokey-test.vlx"
+
+echo "ok: jeff vl keeps unseal material in Jeff config only"
