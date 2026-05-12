@@ -1,0 +1,1 @@
+- feat: add an idempotent `jeff migrate` runner with config `schema_version`, startup migration checks, and Debian post-install migration for legacy finance and banking data paths.

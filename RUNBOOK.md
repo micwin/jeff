@@ -35,6 +35,7 @@ Operational procedures for Jeff. Update this file whenever the release process, 
 - Keep durable user data in `$XDG_DATA_HOME/jeff` or `~/.local/share/jeff` when `XDG_DATA_HOME` is unset. Finance and banking records belong here, not in `config.json`.
 - Keep cacheable or rebuildable data in `$XDG_CACHE_HOME/jeff` or `~/.cache/jeff` when `XDG_CACHE_HOME` is unset.
 - Store API keys, banking credentials, tokens, and other secrets only in the [Vaultline](https://micwin.github.io/vaultline/) store `jeff`; non-secret metadata may reference Vaultline keys by name.
+- Jeff tracks configuration migrations with `schema_version` in `config.json`. The Debian package runs `jeff migrate --quiet` for the installing sudo user when possible, and the CLI also applies pending migrations on startup.
 
 ## 6. Contact & Escalation
 `[TODO] list on-call owners, communication channels, and escalation timeframes]`

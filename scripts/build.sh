@@ -157,6 +157,24 @@ Maintainer: Unknown <unknown@example.com>
 Description: Jeff CLI assistant packaged for Debian-based systems.
 Depends: tmux
 EOF
+	cat >"$root/DEBIAN/postinst" <<'EOF'
+#!/bin/sh
+set -e
+
+if [ "$1" = "configure" ] && [ -n "${SUDO_USER:-}" ] && [ "$SUDO_USER" != "root" ]; then
+	user_home=$(getent passwd "$SUDO_USER" | cut -d: -f6)
+	if [ -n "$user_home" ] && [ -d "$user_home" ]; then
+		if command -v runuser >/dev/null 2>&1; then
+			HOME="$user_home" runuser -u "$SUDO_USER" -- jeff migrate --quiet || true
+		else
+			su "$SUDO_USER" -c "HOME='$user_home' jeff migrate --quiet" || true
+		fi
+	fi
+fi
+
+exit 0
+EOF
+	chmod 755 "$root/DEBIAN/postinst"
 	mkdir -p "$DIST_DIR"
 	output="$DIST_DIR/jeff_${version}_${arch}.deb"
 	log "==> Building deb package $output"

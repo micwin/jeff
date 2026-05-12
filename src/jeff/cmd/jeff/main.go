@@ -33,6 +33,7 @@ Commands:
   menu        Manage Jeff's interactive shortcut menu
   vl          Run embedded Vaultline commands
   tmpl        Manage Jeff templates
+  migrate     Run Jeff user-data migrations
   completion  Generate shell completions`, ver)
 
 	cmd := &cobra.Command{
@@ -59,6 +60,7 @@ Commands:
 		newMenuCmd(),
 		newVaultlineCmd(),
 		newTmplCmd(),
+		newMigrateCmd(),
 		newCompletionCmd(cmd),
 		newVersionCmd(),
 	)

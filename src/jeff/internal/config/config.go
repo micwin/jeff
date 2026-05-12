@@ -11,6 +11,7 @@ import (
 
 const (
 	appName              = "jeff"
+	CurrentSchemaVersion = 1
 	configFileName       = "config.json"
 	menuFileName         = "menu.json"
 	completionFolder     = "completions"
@@ -25,6 +26,7 @@ const (
 
 // Config represents the persisted CLI configuration.
 type Config struct {
+	SchemaVersion  int               `json:"schema_version,omitempty"`
 	ActiveSession  string            `json:"active_session"`
 	LastSession    string            `json:"last_session"`
 	SessionHistory []string          `json:"session_history,omitempty"`
@@ -93,6 +95,21 @@ func NewStore(customDir string) (*Store, error) {
 // Dir reports the directory that contains the config file.
 func (s *Store) Dir() string {
 	return s.dir
+}
+
+// ConfigPath returns the absolute path to the main configuration file.
+func (s *Store) ConfigPath() string {
+	return s.configPath
+}
+
+// DataDir reports the XDG data directory Jeff uses for durable user data.
+func (s *Store) DataDir() (string, error) {
+	return defaultDataDir()
+}
+
+// CacheDir reports the XDG cache directory Jeff uses for rebuildable data.
+func (s *Store) CacheDir() (string, error) {
+	return defaultCacheDir()
 }
 
 // CompletionDir determines the directory where completion scripts should live.
@@ -218,8 +235,9 @@ func (c *Config) RecordSession(session string) {
 
 func defaultConfig() *Config {
 	return &Config{
-		CodexBinary: defaultCodexBin,
-		ShellStatus: defaultShellStatus(),
+		SchemaVersion: CurrentSchemaVersion,
+		CodexBinary:   defaultCodexBin,
+		ShellStatus:   defaultShellStatus(),
 	}
 }
 
@@ -250,6 +268,9 @@ func DefaultShellStatusConfig() ShellStatusConfig {
 }
 
 func (c *Config) applyDefaults() {
+	if c.SchemaVersion <= 0 {
+		c.SchemaVersion = CurrentSchemaVersion
+	}
 	if c.CodexBinary == "" {
 		c.CodexBinary = defaultCodexBin
 	}
@@ -342,4 +363,30 @@ func defaultConfigDir() (string, error) {
 	}
 
 	return filepath.Join(home, ".config", appName), nil
+}
+
+func defaultDataDir() (string, error) {
+	if val := os.Getenv("XDG_DATA_HOME"); val != "" {
+		return filepath.Join(val, appName), nil
+	}
+
+	home, err := os.UserHomeDir()
+	if err != nil {
+		return "", fmt.Errorf("resolve home: %w", err)
+	}
+
+	return filepath.Join(home, ".local", "share", appName), nil
+}
+
+func defaultCacheDir() (string, error) {
+	if val := os.Getenv("XDG_CACHE_HOME"); val != "" {
+		return filepath.Join(val, appName), nil
+	}
+
+	home, err := os.UserHomeDir()
+	if err != nil {
+		return "", fmt.Errorf("resolve home: %w", err)
+	}
+
+	return filepath.Join(home, ".cache", appName), nil
 }

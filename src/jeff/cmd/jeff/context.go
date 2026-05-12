@@ -8,6 +8,7 @@ import (
 	"github.com/spf13/cobra"
 
 	"jeff/internal/config"
+	"jeff/internal/migrations"
 )
 
 type commandContext struct {
@@ -45,6 +46,11 @@ func setCommandContext(cmd *cobra.Command, configDir string, status bool) error 
 	store, err := cachedStore(configDir)
 	if err != nil {
 		return err
+	}
+	if cmd.Name() != "migrate" {
+		if _, err := migrations.Run(store, nil); err != nil {
+			return err
+		}
 	}
 
 	cc := &commandContext{
