@@ -48,6 +48,8 @@ assert_contains "$info_out" "Rooms:    3" "memcastle info counts markdown rooms"
 assert_contains "$info_out" "gatehouse/" "memcastle info shows gatehouse"
 assert_contains "$info_out" "Structure" "memcastle info prints structure"
 assert_contains "$info_out" "|--" "memcastle info uses tree layout"
+mc_info_out=$("$JEFF_BIN" --config "$CONFIG_DIR" mc info)
+assert_contains "$mc_info_out" "Memory Castle" "mc aliases memcastle"
 
 # Memcastle search is offline, case-insensitive, and tolerates collapsed whitespace.
 search_out=$("$JEFF_BIN" --config "$CONFIG_DIR" memcastle search "persistent  working")
@@ -62,6 +64,7 @@ if "$JEFF_BIN" --config "$CONFIG_DIR" codex init other-agent >/tmp/jeff-force.ou
 fi
 "$JEFF_BIN" --config "$CONFIG_DIR" codex init --force other-agent >/dev/null
 grep -q '"session_id": "other-agent"' "$CONFIG_DIR/config.json"
+grep -q "\"codex_binary\": \"$CODEX_STUB\"" "$CONFIG_DIR/config.json"
 echo "ok: codex init manages one guarded session"
 
 # Codex init --last resolves and prints the newest local Codex session id.

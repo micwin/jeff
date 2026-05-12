@@ -13,8 +13,9 @@ import (
 
 func newMemcastleCmd() *cobra.Command {
 	cmd := &cobra.Command{
-		Use:   "memcastle",
-		Short: "Inspect Jeff's persistent memory castle",
+		Use:     "memcastle",
+		Aliases: []string{"mc"},
+		Short:   "Inspect Jeff's persistent memory castle",
 	}
 	cmd.AddCommand(newMemcastleInfoCmd(), newMemcastleSearchCmd(), newMemcastleAskCmd(), newMemcastleCleanupCmd())
 	return cmd
