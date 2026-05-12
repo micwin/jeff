@@ -94,6 +94,10 @@ vaultline/   Local Vaultline store files for Jeff-scoped secrets.
 These local files record whether the Jeff preprompt was already injected for a
 bound chat session.</p>
 
+<p>Jeff-managed Vaultline stores live below <code class="language-plaintext highlighter-rouge">vaultline/stores/</code>. Jeff keeps the
+<code class="language-plaintext highlighter-rouge">jeff</code> store’s unseal material in <code class="language-plaintext highlighter-rouge">config.json</code> and passes it transiently to the
+managed Vaultline daemon when it has to restart.</p>
+
 <p>Stored commands use this layout:</p>
 
 <div class="language-text highlighter-rouge"><div class="highlight"><pre class="highlight"><code>commands/
