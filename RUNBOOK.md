@@ -30,5 +30,11 @@ Operational procedures for Jeff. Update this file whenever the release process, 
 - Rotate credentials per the ops calendar and update this section with the rotation cadence. `[TODO] add rotation frequency and owners]`
 - Never commit generated secrets or Smokey outputs containing sensitive data. Use `tmp/` for transient transfers and delete after confirmation.
 
-## 5. Contact & Escalation
+## 5. User Data Storage
+- Keep Jeff configuration in `$XDG_CONFIG_HOME/jeff` or `~/.config/jeff` when `XDG_CONFIG_HOME` is unset.
+- Keep durable user data in `$XDG_DATA_HOME/jeff` or `~/.local/share/jeff` when `XDG_DATA_HOME` is unset. Finance and banking records belong here, not in `config.json`.
+- Keep cacheable or rebuildable data in `$XDG_CACHE_HOME/jeff` or `~/.cache/jeff` when `XDG_CACHE_HOME` is unset.
+- Store API keys, banking credentials, tokens, and other secrets only in the [Vaultline](https://micwin.github.io/vaultline/) store `jeff`; non-secret metadata may reference Vaultline keys by name.
+
+## 6. Contact & Escalation
 `[TODO] list on-call owners, communication channels, and escalation timeframes]`

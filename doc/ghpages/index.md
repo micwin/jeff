@@ -31,6 +31,7 @@ Happy hacking!
 
 - [Download overview]({{ "/downloads.html" | relative_url }})
 - [Sidecar build details]({{ "/sidecars.html" | relative_url }})
+- [Storage layout]({{ "/storage.html" | relative_url }})
 
 <!-- latest-release:start -->
 ## Latest Release
