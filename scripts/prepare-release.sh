@@ -117,6 +117,26 @@ if not lines:
 print("\n\n".join(lines))
 PY
 )
+  highlights_block=$(python3 - "$snippets_dir" <<'PY'
+import re, sys, pathlib
+dir_path = pathlib.Path(sys.argv[1])
+snippets = sorted(dir_path.glob('*.md'))
+highlights = []
+for path in snippets:
+    for line in path.read_text().splitlines():
+        text = line.strip()
+        if not text.startswith("- "):
+            continue
+        text = text[2:].strip()
+        text = re.sub(r"^(feat|fix|docs|chore|refactor|test|build|ci):\s*", "", text)
+        if text:
+            highlights.append("- " + text[:1].upper() + text[1:])
+        break
+if not highlights:
+    highlights = ["- See changes below."]
+print("\n".join(highlights[:5]))
+PY
+)
   vaultline_label=$(vaultline_version_label)
   cat <<EOF >"$notes_file"
 ---
@@ -126,7 +146,7 @@ title: Release v$RELEASE_VERSION
 
 ## Highlights
 
-- _Add highlights here_
+$highlights_block
 
 ## Downloads
 
