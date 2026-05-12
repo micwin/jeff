@@ -44,8 +44,8 @@
 
 <ol>
   <li>Install the CLI via <code class="language-plaintext highlighter-rouge">scripts/build.sh --compile</code> (or grab the .deb package).</li>
-  <li>Configure your Codex session with <code class="language-plaintext highlighter-rouge">jeff codex init</code>.</li>
-  <li>Ask questions using <code class="language-plaintext highlighter-rouge">jeff codex ask "What does this repo do?"</code>.</li>
+  <li>Configure your Jeff chat with <code class="language-plaintext highlighter-rouge">jeff codex init --last</code> or <code class="language-plaintext highlighter-rouge">jeff codex init &lt;session-id&gt;</code>.</li>
+  <li>Start your Jeff chat with <code class="language-plaintext highlighter-rouge">jeff chat</code>.</li>
   <li>Launch the tmux overlay with <code class="language-plaintext highlighter-rouge">jeff tmux</code> (Ctrl-T opens the quick menu).</li>
 </ol>
 
@@ -58,8 +58,9 @@
   <li><code class="language-plaintext highlighter-rouge">jeff tmux</code> launches the overlay with a configurable status bar and lets you pop open the menu via <code class="language-plaintext highlighter-rouge">Ctrl-T</code> while pair-programming in your favorite TUI editor.</li>
   <li><code class="language-plaintext highlighter-rouge">jeff tmpl</code> lets you list, validate, and render reusable template packages (with shell completion for template names).</li>
   <li><code class="language-plaintext highlighter-rouge">jeff vl</code> runs the bundled <a href="https://micwin.github.io/vaultline/">Vaultline</a> CLI without extracting a helper executable to disk.</li>
-  <li><code class="language-plaintext highlighter-rouge">jeff codex tui</code> opens a long-lived Codex session for ongoing conversations.</li>
-  <li><code class="language-plaintext highlighter-rouge">jeff codex ask</code> sends a single question to Codex and returns the answer immediately.</li>
+  <li><code class="language-plaintext highlighter-rouge">jeff agent</code> bootstraps Jeff’s memory castle and persistent personal-agent data under the XDG data directory.</li>
+  <li><code class="language-plaintext highlighter-rouge">jeff chat</code> opens the long-lived Jeff agent session for ongoing conversations.</li>
+  <li><code class="language-plaintext highlighter-rouge">jeff execute</code> runs Bash-backed user commands stored under Jeff’s data directory, with completion for command names.</li>
   <li><code class="language-plaintext highlighter-rouge">jeff completion</code> installs command completions for bash, zsh, and fish.</li>
 </ul>
 
@@ -68,14 +69,15 @@
 <ul>
   <li><a href="/jeff/downloads.html">Download overview</a></li>
   <li><a href="/jeff/sidecars.html">Sidecar build details</a></li>
+  <li><a href="/jeff/storage.html">Storage layout</a></li>
 </ul>
 
 <!-- latest-release:start -->
 <h2 id="latest-release">Latest Release</h2>
 
 <ul>
-  <li><a href="https://github.com/micwin/jeff/releases/tag/v0.3.23">Download Jeff v0.3.23</a></li>
-  <li><a href="/jeff/releases/v0.3.23.html">Release notes</a>
+  <li><a href="https://github.com/micwin/jeff/releases/tag/v0.3.25">Download Jeff v0.3.25</a></li>
+  <li><a href="/jeff/releases/v0.3.25.html">Release notes</a>
 <!-- latest-release:end --></li>
 </ul>
 </div>
