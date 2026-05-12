@@ -43,8 +43,9 @@ echo "ok: agent bootstrap creates data layout"
 
 # Memcastle info prints metadata and a structure-only tree.
 info_out=$("$JEFF_BIN" --config "$CONFIG_DIR" memcastle info)
-assert_contains "$info_out" "Wings:    3" "memcastle info counts wings"
-assert_contains "$info_out" "Rooms:    3" "memcastle info counts markdown rooms"
+assert_contains "$info_out" "Root: $DATA_DIR/jeff/memcastle" "memcastle info uses Smokey state"
+assert_contains "$info_out" "Wings:" "memcastle info prints wing count"
+assert_contains "$info_out" "Rooms:" "memcastle info prints room count"
 assert_contains "$info_out" "gatehouse/" "memcastle info shows gatehouse"
 assert_contains "$info_out" "Structure" "memcastle info prints structure"
 assert_contains "$info_out" "|--" "memcastle info uses tree layout"

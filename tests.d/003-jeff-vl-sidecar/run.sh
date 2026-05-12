@@ -53,6 +53,19 @@ if [[ "$secret_out" != "local-value" ]]; then
   exit 1
 fi
 
+"$JEFF_BIN" --config "$CONFIG_DIR" vl secret set smokey-default-store --value defaulted-value >/dev/null
+default_secret_out=$("$JEFF_BIN" --config "$CONFIG_DIR" vl secret get smokey-default-store)
+if [[ "$default_secret_out" != "defaulted-value" ]]; then
+  printf 'FAIL: unexpected default-store vaultline secret value: %s\n' "$default_secret_out" >&2
+  exit 1
+fi
+"$JEFF_BIN" --config "$CONFIG_DIR" vl secret set --name smokey-name-flag --value named-value >/dev/null
+named_secret_out=$("$JEFF_BIN" --config "$CONFIG_DIR" vl secret get --name smokey-name-flag)
+if [[ "$named_secret_out" != "named-value" ]]; then
+  printf 'FAIL: unexpected --name default-store vaultline secret value: %s\n' "$named_secret_out" >&2
+  exit 1
+fi
+
 echo "ok: jeff vl stores secrets in the managed jeff store"
 
 # Jeff keeps the jeff-store passphrase in Jeff config, not Vaultline's store registry.

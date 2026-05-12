@@ -43,6 +43,7 @@ func runVaultline(runCtx context.Context, ctx *commandContext, args []string) er
 	if len(args) > 0 && args[0] == "daemon-stop" {
 		return stopManagedVaultline(runCtx, ctx)
 	}
+	args = defaultVaultlineSecretStore(args)
 	managedArgs, err := managedVaultlineArgs(runCtx, ctx, args)
 	if err != nil {
 		return err
@@ -146,4 +147,86 @@ func normalizeVaultlineArgs(ctx *commandContext, args []string) ([]string, error
 		}
 	}
 	return normalized, nil
+}
+
+func defaultVaultlineSecretStore(args []string) []string {
+	if len(args) < 2 || args[0] != "secret" {
+		return defaultVaultlineFromSecretFlag(args)
+	}
+	out := append([]string(nil), args...)
+	switch args[1] {
+	case "set", "get", "delete", "delete-prefix", "glob":
+		defaultFirstSecretArg(out, 2)
+	case "copy", "move":
+		defaultFirstSecretArg(out, 2)
+		defaultFirstSecretArg(out, 3)
+	}
+	return defaultVaultlineSecretFlags(out)
+}
+
+func defaultFirstSecretArg(args []string, start int) {
+	for i := start; i < len(args); i++ {
+		if strings.HasPrefix(args[i], "-") {
+			if vaultlineFlagTakesValue(args[i]) {
+				i++
+			}
+			continue
+		}
+		args[i] = defaultVaultlineStore(args[i])
+		return
+	}
+}
+
+func defaultVaultlineFromSecretFlag(args []string) []string {
+	out := append([]string(nil), args...)
+	return defaultVaultlineFromSecretFlagInPlace(out)
+}
+
+func defaultVaultlineSecretFlags(args []string) []string {
+	out := append([]string(nil), args...)
+	out = defaultVaultlineFromSecretFlagInPlace(out)
+	for i := 0; i < len(out); i++ {
+		switch {
+		case out[i] == "--name" && i+1 < len(out):
+			out[i+1] = defaultVaultlineStore(out[i+1])
+			i++
+		case strings.HasPrefix(out[i], "--name="):
+			value := strings.TrimPrefix(out[i], "--name=")
+			out[i] = "--name=" + defaultVaultlineStore(value)
+		}
+	}
+	return out
+}
+
+func defaultVaultlineFromSecretFlagInPlace(out []string) []string {
+	for i := 0; i < len(out); i++ {
+		switch {
+		case out[i] == "--from-secret" && i+1 < len(out):
+			out[i+1] = defaultVaultlineStore(out[i+1])
+			i++
+		case strings.HasPrefix(out[i], "--from-secret="):
+			value := strings.TrimPrefix(out[i], "--from-secret=")
+			out[i] = "--from-secret=" + defaultVaultlineStore(value)
+		}
+	}
+	return out
+}
+
+func defaultVaultlineStore(value string) string {
+	if value == "" || strings.Contains(value, ":") || strings.HasPrefix(value, "-") {
+		return value
+	}
+	return "jeff:" + value
+}
+
+func vaultlineFlagTakesValue(flag string) bool {
+	if strings.Contains(flag, "=") {
+		return false
+	}
+	switch flag {
+	case "--value", "--file", "--out", "--output", "--name":
+		return true
+	default:
+		return false
+	}
 }
