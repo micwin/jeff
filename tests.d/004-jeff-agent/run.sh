@@ -40,7 +40,8 @@ test -f "$DATA_DIR/jeff/memcastle/finance/banking/api-access.md"
 test ! -d "$DATA_DIR/jeff/memcastle/wings"
 test -d "$DATA_DIR/jeff/skills"
 test -d "$DATA_DIR/jeff/reports"
-test -d "$DATA_DIR/jeff/vaultline"
+test -f "$DATA_DIR/jeff/memcastle/jeff/vaultline/index.md"
+test -f "$DATA_DIR/jeff/memcastle/jeff/vaultline/skill.md"
 echo "ok: jeff init creates data layout"
 
 # The old explicit agent bootstrap command is intentionally gone.
@@ -61,6 +62,10 @@ assert_contains "$info_out" "Structure" "memcastle info prints structure"
 assert_contains "$info_out" "|--" "memcastle info uses tree layout"
 mc_info_out=$("$JEFF_BIN" --config "$CONFIG_DIR" mc info)
 assert_contains "$mc_info_out" "Memory Castle" "mc aliases memcastle"
+path_out=$("$JEFF_BIN" --config "$CONFIG_DIR" memcastle path)
+assert_contains "$path_out" "$DATA_DIR/jeff/memcastle" "memcastle path prints root"
+mc_path_out=$("$JEFF_BIN" --config "$CONFIG_DIR" mc path)
+assert_contains "$mc_path_out" "$DATA_DIR/jeff/memcastle" "mc path aliases memcastle path"
 
 # Memcastle search is offline, case-insensitive, and tolerates collapsed whitespace.
 search_out=$("$JEFF_BIN" --config "$CONFIG_DIR" memcastle search "persistent  working")

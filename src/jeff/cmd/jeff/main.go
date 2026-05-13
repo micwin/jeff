@@ -73,20 +73,7 @@ Commands:
 		newExecuteCmd(),
 		newCompletionCmd(cmd),
 		newVersionCmd(),
-		newVaultlineWatchdogCmd(),
 	)
 
-	return cmd
-}
-
-func newVaultlineWatchdogCmd() *cobra.Command {
-	cmd := &cobra.Command{
-		Use:    "__vl-watchdog <runtime-file>",
-		Hidden: true,
-		Args:   cobra.ExactArgs(1),
-		RunE: func(cmd *cobra.Command, args []string) error {
-			return runVaultlineWatchdog(args[0])
-		},
-	}
 	return cmd
 }

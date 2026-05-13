@@ -116,3 +116,47 @@ func TestRunFlattensMemcastleLayout(t *testing.T) {
 		t.Fatalf("old wings directory should be removed when empty: %v", err)
 	}
 }
+
+func TestRunMovesVaultlineStoreIntoMemcastle(t *testing.T) {
+	home := t.TempDir()
+	configRoot := filepath.Join(home, "config")
+	dataRoot := filepath.Join(home, "data")
+	t.Setenv("XDG_CONFIG_HOME", configRoot)
+	t.Setenv("XDG_DATA_HOME", dataRoot)
+
+	store, err := config.NewStore("")
+	if err != nil {
+		t.Fatalf("create store: %v", err)
+	}
+	oldStore := filepath.Join(dataRoot, "jeff", "vaultline", "stores", "jeff", "secrets")
+	if err := os.MkdirAll(oldStore, 0o700); err != nil {
+		t.Fatalf("create old store: %v", err)
+	}
+	if err := os.WriteFile(filepath.Join(oldStore, "paperless.username.vlx"), []byte("encrypted\n"), 0o600); err != nil {
+		t.Fatalf("write old secret: %v", err)
+	}
+	if err := os.MkdirAll(filepath.Dir(store.ConfigPath()), 0o755); err != nil {
+		t.Fatalf("create config dir: %v", err)
+	}
+	if err := os.WriteFile(store.ConfigPath(), []byte(`{"schema_version":2}`+"\n"), 0o600); err != nil {
+		t.Fatalf("write config: %v", err)
+	}
+
+	result, err := Run(store, nil)
+	if err != nil {
+		t.Fatalf("run migrations: %v", err)
+	}
+	if len(result.Moved) != 1 {
+		t.Fatalf("expected one moved path, got %+v", result.Moved)
+	}
+	newStore, err := store.VaultlineStoreDir()
+	if err != nil {
+		t.Fatalf("vaultline store dir: %v", err)
+	}
+	if _, err := os.Stat(filepath.Join(newStore, "secrets", "paperless.username.vlx")); err != nil {
+		t.Fatalf("migrated vaultline secret missing: %v", err)
+	}
+	if _, err := os.Stat(filepath.Join(dataRoot, "jeff", "vaultline")); !os.IsNotExist(err) {
+		t.Fatalf("old vaultline directory should be removed when empty: %v", err)
+	}
+}

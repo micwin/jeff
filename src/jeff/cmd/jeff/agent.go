@@ -45,6 +45,10 @@ func newAgentStatusCmd() *cobra.Command {
 			if err != nil {
 				return err
 			}
+			vaultlineDir, err := ctx.store.VaultlineDir()
+			if err != nil {
+				return err
+			}
 			fmt.Fprintf(ctx.stdout, "config: %s\n", ctx.store.Dir())
 			fmt.Fprintf(ctx.stdout, "data: %s\n", dataDir)
 			fmt.Fprintf(ctx.stdout, "cache: %s\n", cacheDir)
@@ -52,7 +56,7 @@ func newAgentStatusCmd() *cobra.Command {
 			fmt.Fprintf(ctx.stdout, "skills: %s\n", filepath.Join(dataDir, "skills"))
 			fmt.Fprintf(ctx.stdout, "commands: %s\n", filepath.Join(dataDir, "commands"))
 			fmt.Fprintf(ctx.stdout, "reports: %s\n", filepath.Join(dataDir, "reports"))
-			fmt.Fprintf(ctx.stdout, "vaultline: %s\n", filepath.Join(dataDir, "vaultline"))
+			fmt.Fprintf(ctx.stdout, "vaultline: %s\n", vaultlineDir)
 			return nil
 		},
 	}

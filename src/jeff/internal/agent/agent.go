@@ -52,7 +52,7 @@ func Bootstrap(store *config.Store, force bool) (*BootstrapResult, error) {
 	if err != nil {
 		return nil, err
 	}
-	for _, dir := range []string{"skills", "reports", "vaultline", "commands"} {
+	for _, dir := range []string{"skills", "reports", "commands"} {
 		if err := os.MkdirAll(filepath.Join(dataDir, dir), 0o755); err != nil {
 			return nil, fmt.Errorf("create %s dir: %w", dir, err)
 		}
@@ -109,7 +109,10 @@ func CastleInfoFor(store *config.Store) (*CastleInfo, error) {
 			return nil
 		}
 		slashRel := filepath.ToSlash(rel)
-		if strings.HasPrefix(slashRel, "state/") || strings.HasPrefix(slashRel, "logbook/") {
+		if skipCastlePath(slashRel) {
+			if entry.IsDir() {
+				return filepath.SkipDir
+			}
 			return nil
 		}
 		parts := strings.Split(slashRel, "/")
@@ -225,14 +228,20 @@ func CastleDocument(store *config.Store) (string, error) {
 		if walkErr != nil {
 			return walkErr
 		}
-		if entry.IsDir() || strings.Contains(filepath.ToSlash(path), "/state/") {
-			return nil
-		}
-		data, err := os.ReadFile(path)
+		rel, err := filepath.Rel(agentDir, path)
 		if err != nil {
 			return err
 		}
-		rel, err := filepath.Rel(agentDir, path)
+		if entry.IsDir() {
+			if skipCastlePath(filepath.ToSlash(rel)) {
+				return filepath.SkipDir
+			}
+			return nil
+		}
+		if skipCastlePath(filepath.ToSlash(rel)) {
+			return nil
+		}
+		data, err := os.ReadFile(path)
 		if err != nil {
 			return err
 		}
@@ -273,7 +282,17 @@ func SearchCastle(store *config.Store, query string, regex bool) ([]SearchMatch,
 		if walkErr != nil {
 			return walkErr
 		}
-		if entry.IsDir() || strings.Contains(filepath.ToSlash(path), "/state/") {
+		rel, err := filepath.Rel(agentDir, path)
+		if err != nil {
+			return err
+		}
+		if entry.IsDir() {
+			if skipCastlePath(filepath.ToSlash(rel)) {
+				return filepath.SkipDir
+			}
+			return nil
+		}
+		if skipCastlePath(filepath.ToSlash(rel)) {
 			return nil
 		}
 		file, err := os.Open(path)
@@ -281,10 +300,6 @@ func SearchCastle(store *config.Store, query string, regex bool) ([]SearchMatch,
 			return err
 		}
 		defer file.Close()
-		rel, err := filepath.Rel(agentDir, path)
-		if err != nil {
-			return err
-		}
 		var lines []string
 		scanner := bufio.NewScanner(file)
 		lineNo := 0
@@ -320,6 +335,21 @@ func SearchCastle(store *config.Store, query string, regex bool) ([]SearchMatch,
 
 func normalizeSearchText(value string) string {
 	return strings.Join(strings.Fields(strings.ToLower(value)), " ")
+}
+
+func skipCastlePath(rel string) bool {
+	rel = filepath.ToSlash(rel)
+	if rel == "." || rel == "" {
+		return false
+	}
+	if strings.HasPrefix(rel, "state/") || strings.HasPrefix(rel, "logbook/") {
+		return true
+	}
+	if strings.Contains(rel, "/vaultline/store/") || strings.HasSuffix(rel, "/vaultline/store") {
+		return true
+	}
+	name := filepath.Base(rel)
+	return name == ".master_salt" || strings.HasSuffix(name, ".vlx")
 }
 
 func PromptInjected(store *config.Store, sessionID string) (bool, error) {

@@ -3,7 +3,7 @@
 Operational procedures for Jeff. Update this file whenever the release process, onboarding steps, or incident protocols change.
 
 ## 1. Onboarding
-1. Ensure access to the `jeff` [Vaultline](https://micwin.github.io/vaultline/) store and run `vaultline store create jeff` if it does not exist locally.
+1. Ensure access to the `jeff` [Vaultline](https://micwin.github.io/vaultline/) store. Existing Jeff stores are registered with `vaultline store add jeff <path>`; new stores are created by Jeff on first secret use.
 2. Run `scripts/bootstrap-dev.sh` to install multi-language toolchains and sync Smokey.
 3. Verify `smokey --dir tests.d` executes the baseline suites (starting with `tests.d/000-*`). `[TODO] list expected baseline cases`
 4. Review `DEVELOPER.md` and AGENTS.md (if acting as an agent) before first commit.
@@ -27,6 +27,7 @@ Operational procedures for Jeff. Update this file whenever the release process, 
 
 ## 4. Secret Management
 - All secrets reside in the [Vaultline](https://micwin.github.io/vaultline/) store `jeff`; use [Vaultline](https://micwin.github.io/vaultline/) hooks to inject at runtime.
+- Jeff stores its encrypted `jeff` store under `memcastle/jeff/vaultline/store/` and registers that path with the running [Vaultline](https://micwin.github.io/vaultline/) daemon via `store add`. Use `store add` for existing stores; do not run `store init` on an existing Jeff store.
 - Rotate credentials per the ops calendar and update this section with the rotation cadence. `[TODO] add rotation frequency and owners]`
 - Never commit generated secrets or Smokey outputs containing sensitive data. Use `tmp/` for transient transfers and delete after confirmation.
 
@@ -35,6 +36,7 @@ Operational procedures for Jeff. Update this file whenever the release process, 
 - Keep durable user data in `$XDG_DATA_HOME/jeff` or `~/.local/share/jeff` when `XDG_DATA_HOME` is unset. Finance and banking records belong here, not in `config.json`.
 - Keep cacheable or rebuildable data in `$XDG_CACHE_HOME/jeff` or `~/.cache/jeff` when `XDG_CACHE_HOME` is unset.
 - Store API keys, banking credentials, tokens, and other secrets only in the [Vaultline](https://micwin.github.io/vaultline/) store `jeff`; non-secret metadata may reference Vaultline keys by name.
+- Treat `*.vlx` files and Vaultline store metadata below `memcastle/jeff/vaultline/store/` as encrypted binary data, not as memory-castle prose.
 - Jeff tracks configuration migrations with `schema_version` in `config.json`. The Debian package runs `jeff migrate --quiet` for the installing sudo user when possible, and the CLI also applies pending migrations on startup.
 
 ## 6. Contact & Escalation

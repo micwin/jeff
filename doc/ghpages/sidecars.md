@@ -29,6 +29,12 @@ Build order:
 
 Dirty local [Vaultline](https://micwin.github.io/vaultline/) checkouts are allowed only when both Jeff and [Vaultline](https://micwin.github.io/vaultline/) are on development branches (`develop` or `feature/*`). Otherwise the build stops before embedding a non-reproducible sidecar.
 
+At runtime, `jeff vl` uses the embedded [Vaultline](https://micwin.github.io/vaultline/)
+CLI but talks to the normal running Vaultline daemon. Jeff registers its
+encrypted store from `memcastle/jeff/vaultline/store/` with that daemon and
+opens it transiently; it does not maintain a separate daemon lifecycle or
+runtime PID cache.
+
 Release metadata is written to `work/sidecars/vaultline/metadata.env`. Releases use `VAULTLINE_VERSION_LABEL` for the downloads table:
 
 - URL source: [Vaultline](https://micwin.github.io/vaultline/)'s reported version.

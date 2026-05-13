@@ -40,9 +40,6 @@ func runVaultline(runCtx context.Context, ctx *commandContext, args []string) er
 	if vaultlineRawPassthrough(args) {
 		return runVaultlineSidecar(runCtx, args, ctx)
 	}
-	if len(args) > 0 && args[0] == "daemon-stop" {
-		return stopManagedVaultline(runCtx, ctx)
-	}
 	args = defaultVaultlineSecretStore(args)
 	managedArgs, err := managedVaultlineArgs(runCtx, ctx, args)
 	if err != nil {
@@ -114,7 +111,7 @@ func vaultlineRawPassthrough(args []string) bool {
 		return true
 	}
 	switch args[0] {
-	case "version", "--version", "help", "--help", "-h", "completion":
+	case "version", "--version", "help", "--help", "-h", "completion", "daemon", "daemon-stop":
 		return true
 	default:
 		return false

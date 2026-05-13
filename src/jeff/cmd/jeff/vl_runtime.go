@@ -4,133 +4,62 @@ import (
 	"bytes"
 	"context"
 	"crypto/rand"
-	"crypto/sha256"
 	"encoding/hex"
 	"encoding/json"
 	"errors"
 	"fmt"
 	"io"
-	"net"
 	"net/http"
 	"os"
-	"os/exec"
 	"path/filepath"
-	"strconv"
 	"strings"
-	"syscall"
-	"time"
 
+	"jeff/internal/config"
 	"jeff/internal/sidecars"
 )
 
 const (
-	vaultlineIdleTimeout = 5 * time.Minute
+	vaultlineDefaultAddr = "127.0.0.1:8428"
 	vaultlineStoreName   = "jeff"
 )
 
-type vaultlineRuntime struct {
-	Addr       string `json:"addr"`
-	PID        int    `json:"pid"`
-	VaultDir   string `json:"vault_dir"`
-	LastUsedAt int64  `json:"last_used_at"`
+type vaultlineStoreInfo struct {
+	Name      string `json:"name"`
+	Path      string `json:"path"`
+	Available bool   `json:"available"`
+	Sealed    bool   `json:"sealed"`
 }
 
 func managedVaultlineArgs(ctx context.Context, cc *commandContext, args []string) ([]string, error) {
-	rt, err := ensureVaultlineDaemon(ctx, cc)
+	cfg, err := cc.loadConfig()
 	if err != nil {
 		return nil, err
 	}
-	if err := ensureJeffVaultlineStore(ctx, cc, rt); err != nil {
+	addr := strings.TrimSpace(cfg.Vaultline.Addr)
+	baseArgs := vaultlineBaseArgs(addr)
+	if err := ensureVaultlineDaemon(ctx, baseArgs); err != nil {
 		return nil, err
 	}
-	if err := touchVaultlineRuntime(cc, rt); err != nil {
+	if err := ensureJeffVaultlineStore(ctx, cc, cfg, addr, baseArgs); err != nil {
 		return nil, err
 	}
-	if err := startVaultlineWatchdog(cc, rt); err != nil {
-		return nil, err
-	}
-	return append([]string{"--addr", rt.Addr}, args...), nil
+	return append(baseArgs, args...), nil
 }
 
-func stopManagedVaultline(ctx context.Context, cc *commandContext) error {
-	rt, err := loadVaultlineRuntime(cc)
-	if errors.Is(err, os.ErrNotExist) {
-		return nil
-	}
-	if err != nil {
-		return err
-	}
-	_ = sidecars.Run(ctx, "vaultline", []string{"--addr", rt.Addr, "daemon-stop"}, sidecars.Stdio{
+func ensureVaultlineDaemon(ctx context.Context, baseArgs []string) error {
+	if err := sidecars.Run(ctx, "vaultline", append(baseArgs, "health"), sidecars.Stdio{
 		Stdout: io.Discard,
 		Stderr: io.Discard,
-	})
-	_ = removeVaultlineRuntime(cc)
+	}); err != nil {
+		return fmt.Errorf("vaultline daemon is not running or is unreachable; start it with 'vaultline daemon' or 'jeff vl daemon': %w", err)
+	}
 	return nil
 }
 
-func ensureVaultlineDaemon(ctx context.Context, cc *commandContext) (*vaultlineRuntime, error) {
-	if rt, err := loadVaultlineRuntime(cc); err == nil {
-		if processAlive(rt.PID) && vaultlineHealth(ctx, rt.Addr) == nil {
-			return rt, nil
-		}
-		_ = removeVaultlineRuntime(cc)
-	} else if !errors.Is(err, os.ErrNotExist) {
-		return nil, err
-	}
-
-	paths, err := vaultlinePaths(cc)
-	if err != nil {
-		return nil, err
-	}
-	if err := os.MkdirAll(filepath.Join(paths.vaultDir, "stores"), 0o700); err != nil {
-		return nil, fmt.Errorf("create vaultline dir: %w", err)
-	}
-	addr, err := freeLoopbackAddr()
-	if err != nil {
-		return nil, err
-	}
-	null, err := os.OpenFile(os.DevNull, os.O_RDWR, 0)
-	if err != nil {
-		return nil, err
-	}
-	defer null.Close()
-	process, err := sidecars.Start(ctx, "vaultline", []string{
-		"daemon",
-		"--addr", addr,
-		"--store-dir", filepath.Join(paths.vaultDir, "stores", "default"),
-		"--config-file", paths.storeConfig,
-		"--daemon-config-file", paths.daemonConfig,
-	}, sidecars.Stdio{
-		Stdin:  null,
-		Stdout: null,
-		Stderr: null,
-	}, nil)
-	if err != nil {
-		return nil, err
-	}
-	rt := &vaultlineRuntime{
-		Addr:       addr,
-		PID:        process.Pid,
-		VaultDir:   paths.vaultDir,
-		LastUsedAt: time.Now().Unix(),
-	}
-	if err := waitForVaultline(ctx, addr); err != nil {
-		_ = syscall.Kill(process.Pid, syscall.SIGTERM)
-		return nil, err
-	}
-	if err := saveVaultlineRuntime(cc, rt); err != nil {
-		return nil, err
-	}
-	return rt, nil
-}
-
-func ensureJeffVaultlineStore(ctx context.Context, cc *commandContext, rt *vaultlineRuntime) error {
-	cfg, err := cc.loadConfig()
-	if err != nil {
-		return err
-	}
+func ensureJeffVaultlineStore(ctx context.Context, cc *commandContext, cfg *config.Config, addr string, baseArgs []string) error {
 	passphrase := strings.TrimSpace(cfg.Vaultline.JeffStorePassphrase)
 	if passphrase == "" {
+		var err error
 		passphrase, err = generateVaultlinePassphrase()
 		if err != nil {
 			return err
@@ -140,22 +69,70 @@ func ensureJeffVaultlineStore(ctx context.Context, cc *commandContext, rt *vault
 			return err
 		}
 	}
-	out, err := sidecars.Output(ctx, "vaultline", []string{"--addr", rt.Addr, "store", "list", "--raw"})
-	if err == nil {
-		for _, line := range strings.Split(string(out), "\n") {
-			if strings.TrimSpace(line) == vaultlineStoreName {
-				return unsealJeffVaultlineStore(ctx, rt, passphrase)
-			}
-		}
-	}
-	storePath := filepath.Join(rt.VaultDir, "stores", vaultlineStoreName)
-	if err := createJeffVaultlineStore(ctx, rt.Addr, storePath, passphrase); err != nil {
+	storePath, err := cc.store.VaultlineStoreDir()
+	if err != nil {
 		return err
 	}
-	return unsealJeffVaultlineStore(ctx, rt, passphrase)
+	if err := os.MkdirAll(filepath.Dir(storePath), 0o755); err != nil {
+		return fmt.Errorf("create vaultline parent dir: %w", err)
+	}
+	info, err := showJeffVaultlineStore(ctx, baseArgs)
+	if err != nil {
+		exists, existsErr := pathExists(storePath)
+		if existsErr != nil {
+			return existsErr
+		}
+		if exists {
+			if err := addJeffVaultlineStore(ctx, baseArgs, storePath); err != nil {
+				return err
+			}
+		} else if err := createJeffVaultlineStore(ctx, addr, storePath, passphrase); err != nil {
+			return err
+		}
+		info, err = showJeffVaultlineStore(ctx, baseArgs)
+		if err != nil {
+			return err
+		}
+	}
+	if err := assertJeffVaultlineStorePath(info, storePath); err != nil {
+		return err
+	}
+	return unsealJeffVaultlineStore(ctx, baseArgs, passphrase)
+}
+
+func vaultlineBaseArgs(addr string) []string {
+	if strings.TrimSpace(addr) == "" {
+		return nil
+	}
+	return []string{"--addr", strings.TrimSpace(addr)}
+}
+
+func showJeffVaultlineStore(ctx context.Context, baseArgs []string) (*vaultlineStoreInfo, error) {
+	out, err := sidecars.Output(ctx, "vaultline", append(baseArgs, "store", "show", vaultlineStoreName))
+	if err != nil {
+		return nil, err
+	}
+	var info vaultlineStoreInfo
+	if err := json.Unmarshal(out, &info); err != nil {
+		return nil, fmt.Errorf("parse vaultline store info: %w", err)
+	}
+	return &info, nil
+}
+
+func addJeffVaultlineStore(ctx context.Context, baseArgs []string, storePath string) error {
+	if err := sidecars.Run(ctx, "vaultline", append(baseArgs, "store", "add", vaultlineStoreName, storePath), sidecars.Stdio{
+		Stdout: io.Discard,
+		Stderr: io.Discard,
+	}); err != nil {
+		return fmt.Errorf("register Jeff Vaultline store: %w", err)
+	}
+	return nil
 }
 
 func createJeffVaultlineStore(ctx context.Context, addr, storePath, passphrase string) error {
+	if strings.TrimSpace(addr) == "" {
+		addr = vaultlineDefaultAddr
+	}
 	payload, err := json.Marshal(map[string]any{
 		"name":                vaultlineStoreName,
 		"path":                storePath,
@@ -183,11 +160,38 @@ func createJeffVaultlineStore(ctx context.Context, addr, storePath, passphrase s
 	return nil
 }
 
-func unsealJeffVaultlineStore(ctx context.Context, rt *vaultlineRuntime, passphrase string) error {
-	_ = sidecars.Run(ctx, "vaultline", []string{"--addr", rt.Addr, "store", "unseal", vaultlineStoreName, "--value", passphrase, "--transient"}, sidecars.Stdio{
+func assertJeffVaultlineStorePath(info *vaultlineStoreInfo, expected string) error {
+	if info == nil {
+		return errors.New("missing Jeff Vaultline store info")
+	}
+	actual, err := filepath.Abs(info.Path)
+	if err != nil {
+		return err
+	}
+	expected, err = filepath.Abs(expected)
+	if err != nil {
+		return err
+	}
+	if filepath.Clean(actual) != filepath.Clean(expected) {
+		return fmt.Errorf("vaultline store %q points to %s, expected %s", vaultlineStoreName, actual, expected)
+	}
+	return nil
+}
+
+func unsealJeffVaultlineStore(ctx context.Context, baseArgs []string, passphrase string) error {
+	if err := sidecars.Run(ctx, "vaultline", append(baseArgs, "store", "unseal", vaultlineStoreName, "--value", passphrase, "--transient"), sidecars.Stdio{
 		Stdout: io.Discard,
 		Stderr: io.Discard,
-	})
+	}); err != nil {
+		return fmt.Errorf("unseal Jeff Vaultline store: %w", err)
+	}
+	info, err := showJeffVaultlineStore(ctx, baseArgs)
+	if err != nil {
+		return err
+	}
+	if info.Sealed {
+		return errors.New("Jeff Vaultline store is still sealed after unseal")
+	}
 	return nil
 }
 
@@ -199,152 +203,13 @@ func generateVaultlinePassphrase() (string, error) {
 	return hex.EncodeToString(buf[:]), nil
 }
 
-func waitForVaultline(ctx context.Context, addr string) error {
-	deadline := time.Now().Add(5 * time.Second)
-	for {
-		if err := vaultlineHealth(ctx, addr); err == nil {
-			return nil
-		}
-		if time.Now().After(deadline) {
-			return fmt.Errorf("vaultline daemon did not become ready at %s", addr)
-		}
-		time.Sleep(100 * time.Millisecond)
+func pathExists(path string) (bool, error) {
+	_, err := os.Stat(path)
+	if err == nil {
+		return true, nil
 	}
-}
-
-func vaultlineHealth(ctx context.Context, addr string) error {
-	return sidecars.Run(ctx, "vaultline", []string{"--addr", addr, "health"}, sidecars.Stdio{
-		Stdout: io.Discard,
-		Stderr: io.Discard,
-	})
-}
-
-type vaultlinePathSet struct {
-	vaultDir     string
-	storeConfig  string
-	daemonConfig string
-	runtimeDir   string
-	runtimeFile  string
-}
-
-func vaultlinePaths(cc *commandContext) (*vaultlinePathSet, error) {
-	vaultDir, err := cc.store.VaultlineDir()
-	if err != nil {
-		return nil, err
+	if errors.Is(err, os.ErrNotExist) {
+		return false, nil
 	}
-	sum := sha256.Sum256([]byte(vaultDir))
-	id := hex.EncodeToString(sum[:])[:16]
-	runtimeDir := filepath.Join(os.TempDir(), "jeff-vaultline", strconv.Itoa(os.Getuid()), id)
-	return &vaultlinePathSet{
-		vaultDir:     vaultDir,
-		storeConfig:  filepath.Join(vaultDir, "stores.json"),
-		daemonConfig: filepath.Join(vaultDir, "daemon.json"),
-		runtimeDir:   runtimeDir,
-		runtimeFile:  filepath.Join(runtimeDir, "runtime.json"),
-	}, nil
-}
-
-func loadVaultlineRuntime(cc *commandContext) (*vaultlineRuntime, error) {
-	paths, err := vaultlinePaths(cc)
-	if err != nil {
-		return nil, err
-	}
-	data, err := os.ReadFile(paths.runtimeFile)
-	if err != nil {
-		return nil, err
-	}
-	var rt vaultlineRuntime
-	if err := json.Unmarshal(data, &rt); err != nil {
-		return nil, err
-	}
-	return &rt, nil
-}
-
-func saveVaultlineRuntime(cc *commandContext, rt *vaultlineRuntime) error {
-	paths, err := vaultlinePaths(cc)
-	if err != nil {
-		return err
-	}
-	if err := os.MkdirAll(paths.runtimeDir, 0o700); err != nil {
-		return err
-	}
-	data, err := json.MarshalIndent(rt, "", "  ")
-	if err != nil {
-		return err
-	}
-	return os.WriteFile(paths.runtimeFile, data, 0o600)
-}
-
-func touchVaultlineRuntime(cc *commandContext, rt *vaultlineRuntime) error {
-	rt.LastUsedAt = time.Now().Unix()
-	return saveVaultlineRuntime(cc, rt)
-}
-
-func removeVaultlineRuntime(cc *commandContext) error {
-	paths, err := vaultlinePaths(cc)
-	if err != nil {
-		return err
-	}
-	return os.Remove(paths.runtimeFile)
-}
-
-func freeLoopbackAddr() (string, error) {
-	listener, err := net.Listen("tcp", "127.0.0.1:0")
-	if err != nil {
-		return "", err
-	}
-	defer listener.Close()
-	return listener.Addr().String(), nil
-}
-
-func processAlive(pid int) bool {
-	if pid <= 0 {
-		return false
-	}
-	err := syscall.Kill(pid, 0)
-	return err == nil || errors.Is(err, syscall.EPERM)
-}
-
-func startVaultlineWatchdog(cc *commandContext, rt *vaultlineRuntime) error {
-	paths, err := vaultlinePaths(cc)
-	if err != nil {
-		return err
-	}
-	exe, err := os.Executable()
-	if err != nil {
-		return err
-	}
-	cmd := exec.Command(exe, "--config", cc.store.Dir(), "__vl-watchdog", paths.runtimeFile)
-	cmd.Stdin = nil
-	cmd.Stdout = io.Discard
-	cmd.Stderr = io.Discard
-	if err := cmd.Start(); err != nil {
-		return err
-	}
-	return cmd.Process.Release()
-}
-
-func runVaultlineWatchdog(runtimeFile string) error {
-	for {
-		data, err := os.ReadFile(runtimeFile)
-		if errors.Is(err, os.ErrNotExist) {
-			return nil
-		}
-		if err != nil {
-			return err
-		}
-		var rt vaultlineRuntime
-		if err := json.Unmarshal(data, &rt); err != nil {
-			return err
-		}
-		if time.Since(time.Unix(rt.LastUsedAt, 0)) >= vaultlineIdleTimeout {
-			_ = sidecars.Run(context.Background(), "vaultline", []string{"--addr", rt.Addr, "daemon-stop"}, sidecars.Stdio{
-				Stdout: io.Discard,
-				Stderr: io.Discard,
-			})
-			_ = os.Remove(runtimeFile)
-			return nil
-		}
-		time.Sleep(15 * time.Second)
-	}
+	return false, fmt.Errorf("stat %s: %w", path, err)
 }

@@ -17,8 +17,28 @@ func newMemcastleCmd() *cobra.Command {
 		Aliases: []string{"mc"},
 		Short:   "Inspect Jeff's persistent memory castle",
 	}
-	cmd.AddCommand(newMemcastleInfoCmd(), newMemcastleSearchCmd(), newMemcastleAskCmd(), newMemcastleCleanupCmd())
+	cmd.AddCommand(newMemcastleInfoCmd(), newMemcastlePathCmd(), newMemcastleSearchCmd(), newMemcastleAskCmd(), newMemcastleCleanupCmd())
 	return cmd
+}
+
+func newMemcastlePathCmd() *cobra.Command {
+	return &cobra.Command{
+		Use:   "path",
+		Short: "Print the memory castle path",
+		Args:  cobra.NoArgs,
+		RunE: func(cmd *cobra.Command, _ []string) error {
+			ctx, err := commandContextFrom(cmd)
+			if err != nil {
+				return err
+			}
+			agentDir, err := ctx.store.AgentDir()
+			if err != nil {
+				return err
+			}
+			fmt.Fprintln(ctx.stdout, agentDir)
+			return nil
+		},
+	}
 }
 
 func newMemcastleInfoCmd() *cobra.Command {

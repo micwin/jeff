@@ -11,7 +11,7 @@ import (
 
 const (
 	appName              = "jeff"
-	CurrentSchemaVersion = 2
+	CurrentSchemaVersion = 3
 	configFileName       = "config.json"
 	menuFileName         = "menu.json"
 	completionFolder     = "completions"
@@ -44,6 +44,7 @@ type CodexConfig struct {
 
 type VaultlineConfig struct {
 	JeffStorePassphrase string `json:"jeff_store_passphrase,omitempty"`
+	Addr                string `json:"addr,omitempty"`
 }
 
 type TmuxMenuEntry struct {
@@ -159,13 +160,22 @@ func (s *Store) ReportsDir() (string, error) {
 	return filepath.Join(dataDir, "reports"), nil
 }
 
-// VaultlineDir reports where Jeff keeps its local Vaultline store files.
+// VaultlineDir reports where Jeff keeps its local Vaultline support files.
 func (s *Store) VaultlineDir() (string, error) {
-	dataDir, err := s.DataDir()
+	agentDir, err := s.AgentDir()
 	if err != nil {
 		return "", err
 	}
-	return filepath.Join(dataDir, "vaultline"), nil
+	return filepath.Join(agentDir, "jeff", "vaultline"), nil
+}
+
+// VaultlineStoreDir reports where Jeff keeps its encrypted Vaultline store.
+func (s *Store) VaultlineStoreDir() (string, error) {
+	vaultDir, err := s.VaultlineDir()
+	if err != nil {
+		return "", err
+	}
+	return filepath.Join(vaultDir, "store"), nil
 }
 
 // CompletionDir determines the directory where completion scripts should live.

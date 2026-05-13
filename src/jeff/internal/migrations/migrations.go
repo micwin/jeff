@@ -34,6 +34,7 @@ type migration struct {
 var all = []migration{
 	{version: 1, run: migrateDurableDataOutOfConfig},
 	{version: 2, run: migrateFlatMemcastleLayout},
+	{version: 3, run: migrateVaultlineStoreIntoMemcastle},
 }
 
 // Run applies all pending migrations for the provided store.
@@ -187,6 +188,23 @@ func migrateFlatMemcastleLayout(store *config.Store, result *Result) error {
 		}
 	}
 	_ = removeEmptyDirs(filepath.Join(agentDir, "wings"))
+	return nil
+}
+
+func migrateVaultlineStoreIntoMemcastle(store *config.Store, result *Result) error {
+	dataDir, err := store.DataDir()
+	if err != nil {
+		return err
+	}
+	to, err := store.VaultlineStoreDir()
+	if err != nil {
+		return err
+	}
+	from := filepath.Join(dataDir, "vaultline", "stores", "jeff")
+	if err := moveIfPresent(Move{From: from, To: to}, result); err != nil {
+		return err
+	}
+	_ = removeEmptyDirs(filepath.Join(dataDir, "vaultline"))
 	return nil
 }
 

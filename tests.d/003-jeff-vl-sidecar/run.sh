@@ -9,12 +9,17 @@ JEFF_BIN="$REPO_ROOT/dist/jeff"
 CONFIG_DIR="$SMOKEY_STATE_DIR/jeff-vl-config"
 DATA_DIR="$SMOKEY_STATE_DIR/jeff-vl-data"
 CACHE_DIR="$SMOKEY_STATE_DIR/jeff-vl-cache"
+VAULTLINE_ADDR="127.0.0.1:18428"
+VAULTLINE_DIR="$SMOKEY_STATE_DIR/vaultline-daemon"
 
 export XDG_DATA_HOME="$DATA_DIR"
 export XDG_CACHE_HOME="$CACHE_DIR"
 
 cleanup() {
-  "$JEFF_BIN" --config "$CONFIG_DIR" vl daemon-stop >/dev/null 2>&1 || true
+  if [[ -n "${VAULTLINE_PID:-}" ]]; then
+    kill "$VAULTLINE_PID" >/dev/null 2>&1 || true
+    wait "$VAULTLINE_PID" >/dev/null 2>&1 || true
+  fi
 }
 trap cleanup EXIT
 
@@ -26,6 +31,24 @@ if [[ ! "$version_out" =~ ^[0-9]+\.[0-9]+\.[0-9]+$ ]]; then
 fi
 
 echo "ok: jeff vl executes the embedded vaultline sidecar"
+
+# Start an isolated normal Vaultline daemon and point Jeff at it.
+mkdir -p "$CONFIG_DIR" "$VAULTLINE_DIR/stores"
+printf '{ "vaultline": { "addr": "%s" } }\n' "$VAULTLINE_ADDR" >"$CONFIG_DIR/config.json"
+"$JEFF_BIN" vl daemon \
+  --addr "$VAULTLINE_ADDR" \
+  --store-dir "$VAULTLINE_DIR/stores/default" \
+  --config-file "$VAULTLINE_DIR/stores.json" &
+VAULTLINE_PID=$!
+for _ in $(seq 1 50); do
+  if curl -fsS "http://$VAULTLINE_ADDR/api/v1/health" >/dev/null 2>&1; then
+    break
+  fi
+  sleep 0.1
+done
+curl -fsS "http://$VAULTLINE_ADDR/api/v1/health" >/dev/null
+
+echo "ok: test vaultline daemon is reachable"
 
 # Ask Jeff's completion bridge for top-level Vaultline commands and expect secret support.
 top_level=$("$JEFF_BIN" --config "$CONFIG_DIR" __complete vl "" 2>/dev/null)
@@ -45,7 +68,7 @@ fi
 
 echo "ok: jeff vl forwards nested completions"
 
-# Store and fetch a secret through Jeff's managed Vaultline daemon and local jeff store.
+# Store and fetch a secret through the external daemon and Jeff's local jeff store.
 "$JEFF_BIN" --config "$CONFIG_DIR" vl secret set jeff:smokey-test --value local-value >/dev/null
 secret_out=$("$JEFF_BIN" --config "$CONFIG_DIR" vl secret get jeff:smokey-test)
 if [[ "$secret_out" != "local-value" ]]; then
@@ -66,17 +89,17 @@ if [[ "$named_secret_out" != "named-value" ]]; then
   exit 1
 fi
 
-echo "ok: jeff vl stores secrets in the managed jeff store"
+echo "ok: jeff vl stores secrets in the jeff store"
 
 # Jeff keeps the jeff-store passphrase in Jeff config, not Vaultline's store registry.
 if ! grep -q '"jeff_store_passphrase"' "$CONFIG_DIR/config.json"; then
   echo "FAIL: Jeff config missing managed Vaultline passphrase" >&2
   exit 1
 fi
-if grep -q '"passphrase"' "$DATA_DIR/jeff/vaultline/stores.json"; then
+if grep -q '"passphrase"' "$VAULTLINE_DIR/stores.json"; then
   echo "FAIL: Vaultline store config unexpectedly contains a passphrase" >&2
   exit 1
 fi
-test -f "$DATA_DIR/jeff/vaultline/stores/jeff/secrets/smokey-test.vlx"
+test -f "$DATA_DIR/jeff/memcastle/jeff/vaultline/store/secrets/smokey-test.vlx"
 
 echo "ok: jeff vl keeps unseal material in Jeff config only"
