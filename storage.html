@@ -87,7 +87,6 @@
 skills/      User skills and skill metadata. Secret values live in Vaultline.
 commands/    Bash-backed commands executed with `jeff execute &lt;name&gt;`.
 reports/     Generated daily, finance, API, and operational reports.
-vaultline/   Local Vaultline store files for Jeff-scoped secrets.
 </code></pre></div></div>
 
 <p>Jeff writes Codex-backed chat semaphores below <code class="language-plaintext highlighter-rouge">memcastle/state/sessions/</code>.
@@ -101,9 +100,13 @@ cleanup</code> to ask Jeff to sort unsorted <code class="language-plaintext high
 Top-level directories below <code class="language-plaintext highlighter-rouge">memcastle/</code> are wings. Nested directories are topic
 areas, and Markdown files are rooms or focused notes.</p>
 
-<p>Jeff-managed Vaultline stores live below <code class="language-plaintext highlighter-rouge">vaultline/stores/</code>. Jeff keeps the
-<code class="language-plaintext highlighter-rouge">jeff</code> store’s unseal material in <code class="language-plaintext highlighter-rouge">config.json</code> and passes it transiently to the
-managed Vaultline daemon when it has to restart.</p>
+<p>Jeff’s encrypted Vaultline store lives below
+<code class="language-plaintext highlighter-rouge">memcastle/jeff/vaultline/store/</code>. Jeff registers that external store with the
+running <a href="https://micwin.github.io/vaultline/">Vaultline</a> daemon, keeps the
+<code class="language-plaintext highlighter-rouge">jeff</code> store’s unseal material in <code class="language-plaintext highlighter-rouge">config.json</code>, and passes it transiently when
+the store has to be opened. The encrypted store files (<code class="language-plaintext highlighter-rouge">*.vlx</code> and related
+Vaultline metadata) are treated as binary data by memory-castle search and ask
+workflows.</p>
 
 <p>Stored commands use this layout:</p>
 
