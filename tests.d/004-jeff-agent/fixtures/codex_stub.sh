@@ -1,6 +1,10 @@
 #!/usr/bin/env bash
 set -euo pipefail
 
+if [[ -n "${CODEX_STUB_ARGS_FILE:-}" ]]; then
+	printf '%s\n' "$*" >>"$CODEX_STUB_ARGS_FILE"
+fi
+
 prompt=""
 
 while [[ $# -gt 0 ]]; do

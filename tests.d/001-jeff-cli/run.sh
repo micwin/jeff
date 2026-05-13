@@ -15,6 +15,8 @@ export XDG_DATA_HOME="$tmp_root/data"
 export XDG_CACHE_HOME="$tmp_root/cache"
 CODEX_STUB_DIR="$tmp_root/codex_stub"
 CODEX_STUB="$CODEX_STUB_DIR/codex_stub.sh"
+CODEX_STUB_ARGS_FILE="$tmp_root/codex-args.log"
+export CODEX_STUB_ARGS_FILE
 
 assert_eq() {
 	local expected=$1
@@ -113,3 +115,9 @@ if ! grep -q 'Aaaaaaahhhh' /tmp/jeff-chat-fail.out; then
 	exit 1
 fi
 echo "ok: chat reports positive exit code failure"
+
+if ! grep -q -- '--dangerously-bypass-approvals-and-sandbox' "$CODEX_STUB_ARGS_FILE"; then
+	printf 'FAIL: Codex calls did not use YOLO mode\n%s\n' "$(cat "$CODEX_STUB_ARGS_FILE")" >&2
+	exit 1
+fi
+echo "ok: codex calls use YOLO mode"

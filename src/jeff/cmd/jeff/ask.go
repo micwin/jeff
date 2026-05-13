@@ -97,13 +97,12 @@ func runAsk(ctx *commandContext, opts askOptions) error {
 		dirPrefixedQuestion = fmt.Sprintf("%s\n\nCurrent working directory: %s\n\nUser request: %s", prompt, workingDir, opts.question)
 	}
 
-	cmdArgs := []string{
-		"--sandbox", "danger-full-access",
+	cmdArgs := codexYoloArgs(
 		"--search",
 		"exec",
 		"--skip-git-repo-check",
 		"--output-last-message", tmpPath,
-	}
+	)
 	cmdArgs = append(cmdArgs, codexResumeArgs(sessionID, dirPrefixedQuestion)...)
 
 	var stdoutBuf, stderrBuf strings.Builder

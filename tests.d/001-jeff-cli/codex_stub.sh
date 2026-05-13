@@ -4,6 +4,10 @@ set -euo pipefail
 SCRIPT_DIR=$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)
 HEADER_FILE="$SCRIPT_DIR/codex_header.txt"
 
+if [[ -n "${CODEX_STUB_ARGS_FILE:-}" ]]; then
+  printf '%s\n' "$*" >>"$CODEX_STUB_ARGS_FILE"
+fi
+
 output_last=""
 session=""
 prompt=""

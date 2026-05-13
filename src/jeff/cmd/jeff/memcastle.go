@@ -159,7 +159,8 @@ Question:
 Memory castle sources:
 
 %s`, strings.TrimSpace(question), document)
-	cmd := exec.Command(codexBinary, codexResumeArgs(sessionID, prompt)...)
+	args := append(codexYoloArgs(), codexResumeArgs(sessionID, prompt)...)
+	cmd := exec.Command(codexBinary, args...)
 	cmd.Stdout = ctx.stdout
 	cmd.Stderr = ctx.stderr
 	cmd.Stdin = ctx.stdin
@@ -204,7 +205,7 @@ Scope:
 Current memory castle snapshot:
 
 %s`, agentDir, document)
-	args := append([]string{"--sandbox", "danger-full-access"}, codexResumeArgs(sessionID, prompt)...)
+	args := append(codexYoloArgs(), codexResumeArgs(sessionID, prompt)...)
 	cmd := exec.Command(codexBinary, args...)
 	cmd.Stdout = ctx.stdout
 	cmd.Stderr = ctx.stderr

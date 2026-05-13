@@ -43,10 +43,9 @@ func runTUI(ctx *commandContext) error {
 		codexBinary = "codex"
 	}
 
-	args := []string{
-		"--sandbox", "danger-full-access",
+	args := codexYoloArgs(
 		"--search",
-	}
+	)
 	resumeArgs, markInjected, err := chatResumeArgs(ctx, sessionID)
 	if err != nil {
 		return err

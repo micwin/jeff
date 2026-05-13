@@ -12,6 +12,7 @@ COMMANDS_DIR="$DATA_DIR/jeff/commands"
 FIXTURES_DIR="$SMOKEY_TEST_DIR/fixtures"
 CODEX_HOME="$SMOKEY_STATE_DIR/codex-home"
 CODEX_STUB="$SMOKEY_STATE_DIR/codex-stub.sh"
+CODEX_STUB_ARGS_FILE="$SMOKEY_STATE_DIR/codex-agent-args.log"
 
 assert_contains() {
 	local haystack=$1
@@ -27,6 +28,7 @@ assert_contains() {
 export XDG_DATA_HOME="$DATA_DIR"
 export XDG_CACHE_HOME="$SMOKEY_STATE_DIR/jeff-cache"
 export CODEX_HOME
+export CODEX_STUB_ARGS_FILE
 cp "$FIXTURES_DIR/codex_stub.sh" "$CODEX_STUB"
 chmod +x "$CODEX_STUB"
 
@@ -105,6 +107,12 @@ assert_contains "$ask_out" "Do not use web search." "memcastle ask forbids web s
 cleanup_out=$("$JEFF_BIN" --config "$CONFIG_DIR" memcastle cleanup)
 assert_contains "$cleanup_out" "Clean up Jeff's memory castle gatehouse." "memcastle cleanup sends cleanup prompt"
 assert_contains "$cleanup_out" "Work only below this memory castle root:" "memcastle cleanup restricts scope"
+if ! grep -q -- '--dangerously-bypass-approvals-and-sandbox' "$CODEX_STUB_ARGS_FILE"; then
+	echo "FAIL: memcastle Codex calls did not use YOLO mode" >&2
+	cat "$CODEX_STUB_ARGS_FILE" >&2
+	exit 1
+fi
+echo "ok: memcastle Codex calls use YOLO mode"
 
 # Remember appends to the memory castle logbook.
 remember_out=$("$JEFF_BIN" --config "$CONFIG_DIR" agent remember "finance meeting summary")

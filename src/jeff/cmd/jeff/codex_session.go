@@ -29,6 +29,11 @@ func codexResumeArgs(sessionID string, prompt ...string) []string {
 	return append(args, prompt...)
 }
 
+func codexYoloArgs(extra ...string) []string {
+	args := []string{"--dangerously-bypass-approvals-and-sandbox"}
+	return append(args, extra...)
+}
+
 func resolveLastCodexSessionID() (string, error) {
 	root, err := codexHomeDir()
 	if err != nil {
