@@ -2,6 +2,7 @@
 
 ## Read These First
 Review `README.md`, `DEVELOPER.md`, `RUNBOOK.md`, and the docs under `doc/` before acting; their guidance overrules anything here whenever instructions conflict. This file only adds guardrails for automated agents.
+For programming work, also review the active memory-castle programming guidelines at `~/.local/share/jeff/memcastle/codex/programming-guidelines.md` and follow them unless repository-local instructions are stricter.
 
 ## Layout Playbook for Agents
 - Treat `README.md`, `DEVELOPER.md`, `RUNBOOK.md`, and `LICENSE.md` as human-owned references. Do not rewrite them unless the task explicitly requires it.
@@ -22,6 +23,10 @@ Review `README.md`, `DEVELOPER.md`, `RUNBOOK.md`, and the docs under `doc/` befo
 - Keep edits minimal-invasive: do not reorganize files, rename directories, or delete human-authored prose unless asked. Link any new config/architecture content from the appropriate human docs.
 - When refactoring, isolate the change, state the reason in the commit message, and avoid bundling unrelated edits.
 - **Sudo commands:** The Codex harness mangles both the sudo password prompt and any typed password, so sudo cannot be executed from this session. When root access is required, spell out the exact commands so the user can run them in another terminal. Never run sudo yourself.
+
+## Agent Communication
+- Use high semantic density for Jeff-internal and agent-to-agent messages: keep exact facts, ids, paths, commands, errors, constraints, and requested outputs; remove filler, pleasantries, hedging, repeated framing, and long prose around simple facts.
+- Caveman-lite is the default style for specialist exchanges. Use fuller prose only when ambiguity, safety, or human-facing output requires it.
 
 ## Change Management & Security
 - Use Conventional Commits (same as humans) and include intent in the commit body. PRs must link their tracking issue, list manual/Smokey verification, and note any touches to `work/`, `dist/`, `tmp/`, or the `jeff` vaultline store.
