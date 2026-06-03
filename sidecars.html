@@ -70,11 +70,14 @@ package=./cmd/vaultline
 
 <p>Dirty local <a href="https://micwin.github.io/vaultline/">Vaultline</a> checkouts are allowed only when both Jeff and <a href="https://micwin.github.io/vaultline/">Vaultline</a> are on development branches (<code class="language-plaintext highlighter-rouge">develop</code> or <code class="language-plaintext highlighter-rouge">feature/*</code>). Otherwise the build stops before embedding a non-reproducible sidecar.</p>
 
-<p>At runtime, <code class="language-plaintext highlighter-rouge">jeff vl</code> uses the embedded <a href="https://micwin.github.io/vaultline/">Vaultline</a>
-CLI but talks to the normal running Vaultline daemon. Jeff registers its
-encrypted store from <code class="language-plaintext highlighter-rouge">memcastle/jeff/vaultline/store/</code> with that daemon and
-opens it transiently; it does not maintain a separate daemon lifecycle or
-runtime PID cache.</p>
+<p>At runtime, <code class="language-plaintext highlighter-rouge">jeff vl</code> compares the embedded backpack
+<a href="https://micwin.github.io/vaultline/">Vaultline</a> with a local <code class="language-plaintext highlighter-rouge">vaultline</code> binary
+from <code class="language-plaintext highlighter-rouge">PATH</code> and runs the newer semantic version. Use
+<code class="language-plaintext highlighter-rouge">jeff vl --use-backpack-version ...</code> to force the embedded copy or
+<code class="language-plaintext highlighter-rouge">jeff vl --use-local-version ...</code> to force the local binary. Jeff still talks to
+the normal running Vaultline daemon. It registers its encrypted store from
+<code class="language-plaintext highlighter-rouge">memcastle/jeff/vaultline/store/</code> with that daemon and opens it transiently; it
+does not maintain a separate daemon lifecycle or runtime PID cache.</p>
 
 <p>Release metadata is written to <code class="language-plaintext highlighter-rouge">work/sidecars/vaultline/metadata.env</code>. Releases use <code class="language-plaintext highlighter-rouge">VAULTLINE_VERSION_LABEL</code> for the downloads table:</p>
 

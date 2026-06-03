@@ -93,12 +93,24 @@ reports/     Generated daily, finance, API, and operational reports.
 These local files record whether the Jeff preprompt was already injected for a
 bound chat session.</p>
 
-<p>Use <code class="language-plaintext highlighter-rouge">jeff memcastle info</code> to inspect the memory castle structure, <code class="language-plaintext highlighter-rouge">jeff
+<p>Use <code class="language-plaintext highlighter-rouge">jeff memcastle status</code> to inspect memory castle metadata, <code class="language-plaintext highlighter-rouge">jeff
+memcastle tree</code> to print the directory-only castle structure, <code class="language-plaintext highlighter-rouge">jeff memcastle
+path [query]</code> to print the root or resolve directory paths by name, <code class="language-plaintext highlighter-rouge">jeff
 memcastle search</code> for offline text search, <code class="language-plaintext highlighter-rouge">jeff memcastle ask</code> for
-Codex-backed answers constrained to memory castle sources, and <code class="language-plaintext highlighter-rouge">jeff memcastle
-cleanup</code> to ask Jeff to sort unsorted <code class="language-plaintext highlighter-rouge">gatehouse/</code> material into the castle.
-Top-level directories below <code class="language-plaintext highlighter-rouge">memcastle/</code> are wings. Nested directories are topic
-areas, and Markdown files are rooms or focused notes.</p>
+Codex-backed answers constrained to memory castle sources, <code class="language-plaintext highlighter-rouge">jeff memcastle
+continuity import [path]</code> to store Codex compact notes under
+<code class="language-plaintext highlighter-rouge">codex/continuity/</code>, and <code class="language-plaintext highlighter-rouge">jeff memcastle cleanup</code> to ask Jeff to sort unsorted
+<code class="language-plaintext highlighter-rouge">gatehouse/</code> material into the castle.</p>
+
+<p><code class="language-plaintext highlighter-rouge">jeff memcastle path</code> without arguments prints the active castle root. A query
+starting with <code class="language-plaintext highlighter-rouge">/</code> resolves an exact castle-relative directory such as
+<code class="language-plaintext highlighter-rouge">/projects/bde</code>. A query without a leading slash searches directory name
+segments below the castle root: <code class="language-plaintext highlighter-rouge">dist</code> finds directories named <code class="language-plaintext highlighter-rouge">dist</code>,
+<code class="language-plaintext highlighter-rouge">bde/dist</code> finds matching path sequences, and patterns such as <code class="language-plaintext highlighter-rouge">bde/*/main</code> or
+<code class="language-plaintext highlighter-rouge">**/dist</code> support segment wildcards.</p>
+
+<p>Top-level directories below <code class="language-plaintext highlighter-rouge">memcastle/</code> are wings. Nested directories are
+topic areas, and Markdown files are rooms or focused notes.</p>
 
 <p>Jeff’s encrypted Vaultline store lives below
 <code class="language-plaintext highlighter-rouge">memcastle/jeff/vaultline/store/</code>. Jeff registers that external store with the
