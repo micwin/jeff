@@ -1,6 +1,6 @@
 OpenAI Codex v0.46.0 (research preview)
 --------
-workdir: /tmp/codex
+workdir: /smokey/codex
 model: gpt-5-codex
 provider: openai
 approval: never

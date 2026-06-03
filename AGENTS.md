@@ -1,34 +1,47 @@
 # Repository Guidelines
 
+First read and follow the active memory-castle agent instructions at
+`~/.local/share/jeff/memcastle/codex/index.md`; this file only adds Jeff
+repository-specific rules.
+
 ## Read These First
-Review `README.md`, `DEVELOPER.md`, `RUNBOOK.md`, and the docs under `doc/` before acting; their guidance overrules anything here whenever instructions conflict. This file only adds guardrails for automated agents.
-For programming work, also review the active memory-castle programming guidelines at `~/.local/share/jeff/memcastle/codex/programming-guidelines.md` and follow them unless repository-local instructions are stricter.
 
-## Layout Playbook for Agents
-- Treat `README.md`, `DEVELOPER.md`, `RUNBOOK.md`, and `LICENSE.md` as human-owned references. Do not rewrite them unless the task explicitly requires it.
-- When creating or modifying files under `src/`, `doc/`, or `tests.d`, follow the structures described in the human docs. If you must add a new capability or Smokey directory, mirror the established naming (e.g., `tests.d/NNN-feature-case`) and explain it in your PR.
-- Any change to documentation sources, mkdocs configs, or runbooks must be cross-linked from your PR description so humans can review quickly.
-- Route build intermediates to `work/`, deliverables to `dist/`, and user↔agent handoffs to `tmp/`. All three are ignored by Git. Never make runtime code depend on `tmp/`.
-- Use the `develop` branch as the default base; never create `master` or `main`. Feature branches must follow `feature/<ticket-id>-<feature-slug>`, release branches `release/v<major>.<minor>.<patch>`, and cross-version publishing branches (e.g., `ghpages`, `site`) must be tagged with `GHPAGES_CURRENT`, `SITE_CURRENT`, etc.
+Review `README.md`, `DEVELOPER.md`, `RUNBOOK.md`, and the docs under `doc/`
+before acting. Their guidance overrides this file when instructions conflict.
 
-## Build & Test Expectations
-- Always drive builds and releases through the scripts documented in `README.md`/`DEVELOPER.md` (`scripts/bootstrap-dev.sh`, `scripts/build.sh`, `scripts/release.sh`, `scripts/clean.sh`). If you alter their behavior, append the change to `RUNBOOK.md`.
-- Ensure `scripts/build.sh` runs the language-specific test suites before you invoke Smokey.
-- Execute `smokey --dir tests.d` before posting results back to the user, and attach the summary plus any `dist/` artifacts.
-- When authoring or editing Smokey cases, follow the human guidelines: keep tests readable, minimize inline env vars, and use `$SMOKEY_SKIP_CODE` only when a failure should abort the remaining suite.
+## Local Layout
 
-## Coding & Automation Guardrails
-- Apply the formatter/linter rules documented in `DEVELOPER.md`. If the language lacks tooling, default to spaces and existing style in the touched file.
-- Maintain explicit bootstrap files and script headers as described in `DEVELOPER.md`. Only add automation scaffolding that humans can maintain easily.
-- Keep edits minimal-invasive: do not reorganize files, rename directories, or delete human-authored prose unless asked. Link any new config/architecture content from the appropriate human docs.
-- When refactoring, isolate the change, state the reason in the commit message, and avoid bundling unrelated edits.
-- **Sudo commands:** The Codex harness mangles both the sudo password prompt and any typed password, so sudo cannot be executed from this session. When root access is required, spell out the exact commands so the user can run them in another terminal. Never run sudo yourself.
+- Treat `README.md`, `DEVELOPER.md`, `RUNBOOK.md`, and `LICENSE.md` as
+  human-owned references. Do not rewrite them unless the task explicitly
+  requires it.
+- Follow the established structure for changes under `src/`, `doc/`, and
+  `tests.d`.
+- Route build intermediates to `work/`, release artifacts to `dist/`, and
+  user-agent handoffs to `tmp/`. Runtime code must not depend on `tmp/`.
+- Use `develop` as the default base branch. Feature branches use
+  `feature/<ticket-id>-<feature-slug>`; release branches use
+  `release/v<major>.<minor>.<patch>`.
 
-## Agent Communication
-- Use high semantic density for Jeff-internal and agent-to-agent messages: keep exact facts, ids, paths, commands, errors, constraints, and requested outputs; remove filler, pleasantries, hedging, repeated framing, and long prose around simple facts.
-- Caveman-lite is the default style for specialist exchanges. Use fuller prose only when ambiguity, safety, or human-facing output requires it.
+## Build And Test
 
-## Change Management & Security
-- Use Conventional Commits (same as humans) and include intent in the commit body. PRs must link their tracking issue, list manual/Smokey verification, and note any touches to `work/`, `dist/`, `tmp/`, or the `jeff` vaultline store.
-- Secrets live only in the vaultline store `jeff`. When a task requires credentials, instruct the user to place them via vaultline or `tmp/`; never invent `.env` files.
-- Treat `tmp/` as a disposable transfer area. Delete any files you place there once the user confirms receipt, and never expose the contents elsewhere.
+- Use the documented scripts: `scripts/bootstrap-dev.sh`, `scripts/build.sh`,
+  `scripts/prepare-release.sh`, `scripts/publish-release.sh`,
+  `scripts/post-release.sh`, and `scripts/clean.sh`.
+- If script behavior changes, update `RUNBOOK.md`.
+- Run the full Smokey suite with `smokey --tests-dir tests.d` before reporting
+  final verification.
+- Smokey tests must follow `smokey agents-help`: suite-only execution,
+  Smokey-managed state, readable directory tests, committed fixtures, and no
+  direct-test fallbacks.
+
+## Jeff-Specific Safety
+
+- Secrets live only in the Vaultline store `jeff`. Documentation may mention
+  Vaultline key names, never secret values.
+- The embedded default memory-castle tree under
+  `src/jeff/internal/agent/defaults/memcastle/` is public bootstrap content.
+  Keep it generic and never copy personal memory-castle data into it.
+- Do not commit `*.vlx`, personal memory-castle content, `work/`, `dist/`, or
+  `tmp/` artifacts unless the user explicitly requests artifact versioning.
+- Do not run `sudo`; provide exact commands for the user when root access is
+  required.

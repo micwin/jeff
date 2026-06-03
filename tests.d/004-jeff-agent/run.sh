@@ -13,6 +13,8 @@ FIXTURES_DIR="$SMOKEY_TEST_DIR/fixtures"
 CODEX_HOME="$SMOKEY_STATE_DIR/codex-home"
 CODEX_STUB="$SMOKEY_STATE_DIR/codex-stub.sh"
 CODEX_STUB_ARGS_FILE="$SMOKEY_STATE_DIR/codex-agent-args.log"
+AGENT_BOOTSTRAP_OUT="$SMOKEY_STATE_DIR/jeff-agent-bootstrap.out"
+CODEX_FORCE_OUT="$SMOKEY_STATE_DIR/jeff-force.out"
 
 assert_contains() {
 	local haystack=$1
@@ -48,7 +50,7 @@ test -f "$DATA_DIR/jeff/memcastle/jeff/vaultline/skill.md"
 echo "ok: jeff init creates data layout"
 
 # The old explicit agent bootstrap command is intentionally gone.
-if "$JEFF_BIN" --config "$CONFIG_DIR" agent bootstrap >/tmp/jeff-agent-bootstrap.out 2>&1; then
+if "$JEFF_BIN" --config "$CONFIG_DIR" agent bootstrap >"$AGENT_BOOTSTRAP_OUT" 2>&1; then
 	echo "FAIL: agent bootstrap unexpectedly exists" >&2
 	exit 1
 fi
@@ -131,7 +133,7 @@ assert_contains "$search_out" "file-level whitespace-normalized match" "memcastl
 
 # Codex init also deploys embedded defaults, binds the single session, and refuses accidental overwrite.
 "$JEFF_BIN" --config "$CONFIG_DIR" codex init smokey-agent --codex-binary "$CODEX_STUB" >/dev/null
-if "$JEFF_BIN" --config "$CONFIG_DIR" codex init other-agent >/tmp/jeff-force.out 2>&1; then
+if "$JEFF_BIN" --config "$CONFIG_DIR" codex init other-agent >"$CODEX_FORCE_OUT" 2>&1; then
 	echo "FAIL: codex init without --force overwrote existing session" >&2
 	exit 1
 fi
