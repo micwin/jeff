@@ -34,13 +34,17 @@ type CastleInfo struct {
 	Rooms    int
 	Cabinets int
 	Drawers  int
-	Tree     []string
 }
 
 type SearchMatch struct {
 	Path    string
 	Line    int
 	Excerpt string
+}
+
+type ContinuityImportResult struct {
+	Source      string
+	Destination string
 }
 
 func Bootstrap(store *config.Store, force bool) (*BootstrapResult, error) {
@@ -144,17 +148,21 @@ func CastleInfoFor(store *config.Store) (*CastleInfo, error) {
 	if err != nil {
 		return nil, fmt.Errorf("walk memory castle: %w", err)
 	}
-	info.Tree, err = structureTree(agentDir)
+	return info, nil
+}
+
+func CastleTreeFor(store *config.Store) ([]string, error) {
+	agentDir, err := store.AgentDir()
 	if err != nil {
 		return nil, err
 	}
-	return info, nil
+	return structureTree(agentDir)
 }
 
 func structureTree(root string) ([]string, error) {
 	var lines []string
 	lines = append(lines, filepath.Base(root)+"/")
-	children, err := treeChildren(root)
+	children, err := treeDirectoryChildren(root, root)
 	if err != nil {
 		return nil, err
 	}
@@ -186,7 +194,7 @@ func appendTree(root, rel, prefix string, last bool, lines *[]string) error {
 	if !info.IsDir() {
 		return nil
 	}
-	children, err := treeChildren(path)
+	children, err := treeDirectoryChildren(root, path)
 	if err != nil {
 		return err
 	}
@@ -199,23 +207,28 @@ func appendTree(root, rel, prefix string, last bool, lines *[]string) error {
 	return nil
 }
 
-func treeChildren(path string) ([]string, error) {
+func treeDirectoryChildren(root, path string) ([]string, error) {
 	entries, err := os.ReadDir(path)
 	if err != nil {
 		return nil, err
 	}
 	var dirs []string
-	var files []string
 	for _, entry := range entries {
-		if entry.IsDir() {
-			dirs = append(dirs, entry.Name())
-		} else {
-			files = append(files, entry.Name())
+		if !entry.IsDir() {
+			continue
 		}
+		childPath := filepath.Join(path, entry.Name())
+		childRel, err := filepath.Rel(root, childPath)
+		if err != nil {
+			return nil, err
+		}
+		if skipCastlePath(filepath.ToSlash(childRel)) {
+			continue
+		}
+		dirs = append(dirs, entry.Name())
 	}
 	sort.Strings(dirs)
-	sort.Strings(files)
-	return append(dirs, files...), nil
+	return dirs, nil
 }
 
 func CastleDocument(store *config.Store) (string, error) {
@@ -333,6 +346,69 @@ func SearchCastle(store *config.Store, query string, regex bool) ([]SearchMatch,
 	return matches, nil
 }
 
+func ImportContinuityNote(store *config.Store, sourcePath string) (*ContinuityImportResult, error) {
+	sourcePath = strings.TrimSpace(sourcePath)
+	if sourcePath == "" {
+		return nil, errors.New("continuity source path must not be empty")
+	}
+	if store == nil {
+		return nil, errors.New("nil config store")
+	}
+	absSource, err := filepath.Abs(sourcePath)
+	if err != nil {
+		return nil, err
+	}
+	data, err := os.ReadFile(absSource)
+	if err != nil {
+		return nil, fmt.Errorf("read continuity note: %w", err)
+	}
+	content := strings.TrimSpace(string(data))
+	if content == "" {
+		return nil, errors.New("continuity note must not be empty")
+	}
+	agentDir, err := store.AgentDir()
+	if err != nil {
+		return nil, err
+	}
+	destName := continuityNoteName(absSource)
+	destPath := filepath.Join(agentDir, "codex", "continuity", destName)
+	if err := os.MkdirAll(filepath.Dir(destPath), 0o755); err != nil {
+		return nil, fmt.Errorf("create continuity dir: %w", err)
+	}
+	imported := fmt.Sprintf("<!-- imported_from: %s -->\n<!-- imported_at: %s -->\n\n%s\n", absSource, time.Now().Format(time.RFC3339), content)
+	if err := os.WriteFile(destPath, []byte(imported), 0o600); err != nil {
+		return nil, fmt.Errorf("write continuity note: %w", err)
+	}
+	return &ContinuityImportResult{
+		Source:      absSource,
+		Destination: destPath,
+	}, nil
+}
+
+func continuityNoteName(sourcePath string) string {
+	name := filepath.Base(sourcePath)
+	name = strings.TrimSuffix(name, filepath.Ext(name))
+	name = strings.ToLower(name)
+	var builder strings.Builder
+	lastDash := false
+	for _, r := range name {
+		if (r >= 'a' && r <= 'z') || (r >= '0' && r <= '9') {
+			builder.WriteRune(r)
+			lastDash = false
+			continue
+		}
+		if !lastDash {
+			builder.WriteByte('-')
+			lastDash = true
+		}
+	}
+	clean := strings.Trim(builder.String(), "-")
+	if clean == "" {
+		clean = "continuity-note"
+	}
+	return clean + ".md"
+}
+
 func normalizeSearchText(value string) string {
 	return strings.Join(strings.Fields(strings.ToLower(value)), " ")
 }
@@ -341,6 +417,9 @@ func skipCastlePath(rel string) bool {
 	rel = filepath.ToSlash(rel)
 	if rel == "." || rel == "" {
 		return false
+	}
+	if rel == ".git" || strings.HasPrefix(rel, ".git/") {
+		return true
 	}
 	if strings.HasPrefix(rel, "state/") || strings.HasPrefix(rel, "logbook/") {
 		return true

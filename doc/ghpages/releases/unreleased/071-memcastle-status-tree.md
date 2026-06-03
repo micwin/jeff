@@ -1,0 +1,1 @@
+- feat: split memory-castle inspection into `jeff memcastle status` for metadata and `jeff memcastle tree` for a directory-only structure view that hides repository internals.

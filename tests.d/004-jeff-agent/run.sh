@@ -38,6 +38,7 @@ assert_contains "$init_out" "Jeff initialized:" "jeff init reports defaults"
 test -f "$DATA_DIR/jeff/memcastle/castle.md"
 test -f "$DATA_DIR/jeff/memcastle/system.md"
 test -f "$DATA_DIR/jeff/memcastle/gatehouse/index.md"
+test -f "$DATA_DIR/jeff/memcastle/codex/continuity/index.md"
 test -f "$DATA_DIR/jeff/memcastle/finance/banking/api-access.md"
 test ! -d "$DATA_DIR/jeff/memcastle/wings"
 test -d "$DATA_DIR/jeff/skills"
@@ -53,21 +54,75 @@ if "$JEFF_BIN" --config "$CONFIG_DIR" agent bootstrap >/tmp/jeff-agent-bootstrap
 fi
 echo "ok: agent bootstrap is not available"
 
-# Memcastle info prints metadata and a structure-only tree.
-info_out=$("$JEFF_BIN" --config "$CONFIG_DIR" memcastle info)
-assert_contains "$info_out" "Root: $DATA_DIR/jeff/memcastle" "memcastle info uses Smokey state"
-assert_contains "$info_out" "Wings:" "memcastle info prints wing count"
-assert_contains "$info_out" "Rooms:" "memcastle info prints room count"
-assert_contains "$info_out" "gatehouse/" "memcastle info shows gatehouse"
-assert_contains "$info_out" "finance/" "memcastle info shows flat wings"
-assert_contains "$info_out" "Structure" "memcastle info prints structure"
-assert_contains "$info_out" "|--" "memcastle info uses tree layout"
-mc_info_out=$("$JEFF_BIN" --config "$CONFIG_DIR" mc info)
-assert_contains "$mc_info_out" "Memory Castle" "mc aliases memcastle"
+# Memcastle status prints metadata, while tree prints directory structure only.
+status_out=$("$JEFF_BIN" --config "$CONFIG_DIR" memcastle status)
+assert_contains "$status_out" "Root: $DATA_DIR/jeff/memcastle" "memcastle status uses Smokey state"
+assert_contains "$status_out" "Wings:" "memcastle status prints wing count"
+assert_contains "$status_out" "Rooms:" "memcastle status prints room count"
+if grep -q "Structure" <<<"$status_out"; then
+	echo "FAIL: memcastle status printed tree structure" >&2
+	echo "$status_out" >&2
+	exit 1
+fi
+tree_out=$("$JEFF_BIN" --config "$CONFIG_DIR" memcastle tree)
+assert_contains "$tree_out" "gatehouse/" "memcastle tree shows gatehouse"
+assert_contains "$tree_out" "finance/" "memcastle tree shows flat wings"
+assert_contains "$tree_out" "Structure" "memcastle tree prints structure"
+assert_contains "$tree_out" "|--" "memcastle tree uses tree layout"
+if grep -q "castle.md" <<<"$tree_out"; then
+	echo "FAIL: memcastle tree exposed files" >&2
+	echo "$tree_out" >&2
+	exit 1
+fi
+echo "ok: memcastle tree hides files"
+mkdir -p "$DATA_DIR/jeff/memcastle/.git/objects"
+printf 'ref: refs/heads/develop\n' >"$DATA_DIR/jeff/memcastle/.git/HEAD"
+tree_out=$("$JEFF_BIN" --config "$CONFIG_DIR" mc tree)
+assert_contains "$tree_out" "Structure" "mc tree aliases memcastle tree"
+if grep -q '.git' <<<"$tree_out"; then
+	echo "FAIL: memcastle tree exposed git repository internals" >&2
+	echo "$tree_out" >&2
+	exit 1
+fi
+echo "ok: memcastle tree hides git repository internals"
+mc_status_out=$("$JEFF_BIN" --config "$CONFIG_DIR" mc status)
+assert_contains "$mc_status_out" "Memory Castle" "mc aliases memcastle status"
 path_out=$("$JEFF_BIN" --config "$CONFIG_DIR" memcastle path)
 assert_contains "$path_out" "$DATA_DIR/jeff/memcastle" "memcastle path prints root"
 mc_path_out=$("$JEFF_BIN" --config "$CONFIG_DIR" mc path)
 assert_contains "$mc_path_out" "$DATA_DIR/jeff/memcastle" "mc path aliases memcastle path"
+
+# Memcastle path resolves exact castle-relative paths and searches directory
+# segments without exposing locations outside the active Smokey castle root.
+mkdir -p "$DATA_DIR/jeff/memcastle/projects/bde/dist"
+mkdir -p "$DATA_DIR/jeff/memcastle/projects/bde/module/main"
+mkdir -p "$DATA_DIR/jeff/memcastle/jeff/dist"
+mkdir -p "$DATA_DIR/jeff/memcastle/gatehouse/dist"
+exact_path_out=$("$JEFF_BIN" --config "$CONFIG_DIR" memcastle path /projects/bde)
+assert_contains "$exact_path_out" "$DATA_DIR/jeff/memcastle/projects/bde" "memcastle path resolves exact absolute castle path"
+dist_path_out=$("$JEFF_BIN" --config "$CONFIG_DIR" memcastle path dist)
+assert_contains "$dist_path_out" "$DATA_DIR/jeff/memcastle/projects/bde/dist" "memcastle path finds segment matches"
+assert_contains "$dist_path_out" "$DATA_DIR/jeff/memcastle/jeff/dist" "memcastle path finds multiple segment matches"
+bde_dist_out=$("$JEFF_BIN" --config "$CONFIG_DIR" memcastle path bde/dist)
+assert_contains "$bde_dist_out" "$DATA_DIR/jeff/memcastle/projects/bde/dist" "memcastle path finds relative path sequence"
+bde_main_out=$("$JEFF_BIN" --config "$CONFIG_DIR" memcastle path 'bde/*/main')
+assert_contains "$bde_main_out" "$DATA_DIR/jeff/memcastle/projects/bde/module/main" "memcastle path supports single-segment wildcard"
+quoted_dist_out=$("$JEFF_BIN" --config "$CONFIG_DIR" memcastle path '`**/dist`')
+assert_contains "$quoted_dist_out" "$DATA_DIR/jeff/memcastle/gatehouse/dist" "memcastle path accepts quoted glob-like input"
+if "$JEFF_BIN" --config "$CONFIG_DIR" memcastle path /missing >/dev/null 2>&1; then
+	echo "FAIL: memcastle path accepted missing exact path" >&2
+	exit 1
+fi
+echo "ok: memcastle path resolves castle directories by name"
+
+# Continuity import stores the newest Codex compact note in the castle.
+mkdir -p "$CODEX_HOME/memories"
+printf '# Compact Note\n\nNeed: preserve this state.\n' >"$CODEX_HOME/memories/2026-05-27-jeff-compact-note.md"
+continuity_out=$("$JEFF_BIN" --config "$CONFIG_DIR" memcastle continuity import)
+assert_contains "$continuity_out" "Imported continuity note:" "continuity import reports import"
+test -f "$DATA_DIR/jeff/memcastle/codex/continuity/2026-05-27-jeff-compact-note.md"
+grep -q "preserve this state" "$DATA_DIR/jeff/memcastle/codex/continuity/2026-05-27-jeff-compact-note.md"
+echo "ok: memcastle continuity import stores compact notes"
 
 # Memcastle search is offline, case-insensitive, and tolerates collapsed whitespace.
 search_out=$("$JEFF_BIN" --config "$CONFIG_DIR" memcastle search "persistent  working")

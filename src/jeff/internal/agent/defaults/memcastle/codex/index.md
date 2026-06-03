@@ -1,4 +1,7 @@
 # Codex
 
 Use this wing for Codex session setup, prompt injection, compaction recovery,
-and agent behavior rules.
+continuity notes, and agent behavior rules.
+
+Use `continuity/` for compact state snapshots that preserve active work across
+context compaction or restart.
