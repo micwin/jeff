@@ -30,24 +30,24 @@ type vaultlineStoreInfo struct {
 	Sealed    bool   `json:"sealed"`
 }
 
-func managedVaultlineArgs(ctx context.Context, cc *commandContext, args []string) ([]string, error) {
+func managedVaultlineArgs(ctx context.Context, cc *commandContext, runner *vaultlineRunner, args []string) ([]string, error) {
 	cfg, err := cc.loadConfig()
 	if err != nil {
 		return nil, err
 	}
 	addr := strings.TrimSpace(cfg.Vaultline.Addr)
 	baseArgs := vaultlineBaseArgs(addr)
-	if err := ensureVaultlineDaemon(ctx, baseArgs); err != nil {
+	if err := ensureVaultlineDaemon(ctx, runner, baseArgs); err != nil {
 		return nil, err
 	}
-	if err := ensureJeffVaultlineStore(ctx, cc, cfg, addr, baseArgs); err != nil {
+	if err := ensureJeffVaultlineStore(ctx, cc, cfg, addr, runner, baseArgs); err != nil {
 		return nil, err
 	}
 	return append(baseArgs, args...), nil
 }
 
-func ensureVaultlineDaemon(ctx context.Context, baseArgs []string) error {
-	if err := sidecars.Run(ctx, "vaultline", append(baseArgs, "health"), sidecars.Stdio{
+func ensureVaultlineDaemon(ctx context.Context, runner *vaultlineRunner, baseArgs []string) error {
+	if err := runner.Run(ctx, append(baseArgs, "health"), sidecars.Stdio{
 		Stdout: io.Discard,
 		Stderr: io.Discard,
 	}); err != nil {
@@ -56,7 +56,7 @@ func ensureVaultlineDaemon(ctx context.Context, baseArgs []string) error {
 	return nil
 }
 
-func ensureJeffVaultlineStore(ctx context.Context, cc *commandContext, cfg *config.Config, addr string, baseArgs []string) error {
+func ensureJeffVaultlineStore(ctx context.Context, cc *commandContext, cfg *config.Config, addr string, runner *vaultlineRunner, baseArgs []string) error {
 	passphrase := strings.TrimSpace(cfg.Vaultline.JeffStorePassphrase)
 	if passphrase == "" {
 		var err error
@@ -76,20 +76,20 @@ func ensureJeffVaultlineStore(ctx context.Context, cc *commandContext, cfg *conf
 	if err := os.MkdirAll(filepath.Dir(storePath), 0o755); err != nil {
 		return fmt.Errorf("create vaultline parent dir: %w", err)
 	}
-	info, err := showJeffVaultlineStore(ctx, baseArgs)
+	info, err := showJeffVaultlineStore(ctx, runner, baseArgs)
 	if err != nil {
 		exists, existsErr := pathExists(storePath)
 		if existsErr != nil {
 			return existsErr
 		}
 		if exists {
-			if err := addJeffVaultlineStore(ctx, baseArgs, storePath); err != nil {
+			if err := addJeffVaultlineStore(ctx, runner, baseArgs, storePath); err != nil {
 				return err
 			}
 		} else if err := createJeffVaultlineStore(ctx, addr, storePath, passphrase); err != nil {
 			return err
 		}
-		info, err = showJeffVaultlineStore(ctx, baseArgs)
+		info, err = showJeffVaultlineStore(ctx, runner, baseArgs)
 		if err != nil {
 			return err
 		}
@@ -97,7 +97,10 @@ func ensureJeffVaultlineStore(ctx context.Context, cc *commandContext, cfg *conf
 	if err := assertJeffVaultlineStorePath(info, storePath); err != nil {
 		return err
 	}
-	return unsealJeffVaultlineStore(ctx, baseArgs, passphrase)
+	if !info.Sealed {
+		return nil
+	}
+	return unsealJeffVaultlineStore(ctx, runner, baseArgs, passphrase)
 }
 
 func vaultlineBaseArgs(addr string) []string {
@@ -107,8 +110,8 @@ func vaultlineBaseArgs(addr string) []string {
 	return []string{"--addr", strings.TrimSpace(addr)}
 }
 
-func showJeffVaultlineStore(ctx context.Context, baseArgs []string) (*vaultlineStoreInfo, error) {
-	out, err := sidecars.Output(ctx, "vaultline", append(baseArgs, "store", "show", vaultlineStoreName))
+func showJeffVaultlineStore(ctx context.Context, runner *vaultlineRunner, baseArgs []string) (*vaultlineStoreInfo, error) {
+	out, err := runner.Output(ctx, append(baseArgs, "store", "show", vaultlineStoreName))
 	if err != nil {
 		return nil, err
 	}
@@ -119,8 +122,8 @@ func showJeffVaultlineStore(ctx context.Context, baseArgs []string) (*vaultlineS
 	return &info, nil
 }
 
-func addJeffVaultlineStore(ctx context.Context, baseArgs []string, storePath string) error {
-	if err := sidecars.Run(ctx, "vaultline", append(baseArgs, "store", "add", vaultlineStoreName, storePath), sidecars.Stdio{
+func addJeffVaultlineStore(ctx context.Context, runner *vaultlineRunner, baseArgs []string, storePath string) error {
+	if err := runner.Run(ctx, append(baseArgs, "store", "add", vaultlineStoreName, storePath), sidecars.Stdio{
 		Stdout: io.Discard,
 		Stderr: io.Discard,
 	}); err != nil {
@@ -178,14 +181,14 @@ func assertJeffVaultlineStorePath(info *vaultlineStoreInfo, expected string) err
 	return nil
 }
 
-func unsealJeffVaultlineStore(ctx context.Context, baseArgs []string, passphrase string) error {
-	if err := sidecars.Run(ctx, "vaultline", append(baseArgs, "store", "unseal", vaultlineStoreName, "--value", passphrase, "--transient"), sidecars.Stdio{
+func unsealJeffVaultlineStore(ctx context.Context, runner *vaultlineRunner, baseArgs []string, passphrase string) error {
+	if err := runner.Run(ctx, append(baseArgs, "store", "unseal", vaultlineStoreName, "--value", passphrase, "--transient"), sidecars.Stdio{
 		Stdout: io.Discard,
 		Stderr: io.Discard,
 	}); err != nil {
 		return fmt.Errorf("unseal Jeff Vaultline store: %w", err)
 	}
-	info, err := showJeffVaultlineStore(ctx, baseArgs)
+	info, err := showJeffVaultlineStore(ctx, runner, baseArgs)
 	if err != nil {
 		return err
 	}

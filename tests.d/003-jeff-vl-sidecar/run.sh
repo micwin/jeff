@@ -32,6 +32,22 @@ fi
 
 echo "ok: jeff vl executes the embedded vaultline sidecar"
 
+# Force both Vaultline selection modes so regressions in the manual switches are visible.
+backpack_out=$("$JEFF_BIN" vl --use-backpack-version version)
+if [[ ! "$backpack_out" =~ ^[0-9]+\.[0-9]+\.[0-9]+$ ]]; then
+  printf 'FAIL: unexpected forced backpack vaultline version output: %s\n' "$backpack_out" >&2
+  exit 1
+fi
+if command -v vaultline >/dev/null 2>&1; then
+  local_out=$("$JEFF_BIN" vl --use-local-version version)
+  if [[ ! "$local_out" =~ ^[0-9]+\.[0-9]+\.[0-9]+$ ]]; then
+    printf 'FAIL: unexpected forced local vaultline version output: %s\n' "$local_out" >&2
+    exit 1
+  fi
+fi
+
+echo "ok: jeff vl supports explicit Vaultline version selection"
+
 # Start an isolated normal Vaultline daemon and point Jeff at it.
 mkdir -p "$CONFIG_DIR" "$VAULTLINE_DIR/stores"
 printf '{ "vaultline": { "addr": "%s" } }\n' "$VAULTLINE_ADDR" >"$CONFIG_DIR/config.json"

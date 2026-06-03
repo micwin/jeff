@@ -12,6 +12,7 @@ Operational procedures for Jeff. Update this file whenever the release process, 
 1. Start from `develop`. Create a release branch named `release/v<major>.<minor>.<patch>` (semantic versioning) for the work in flight.
 2. Run `scripts/build.sh` to generate binaries/docs into `work/` and `dist/`.
    The build embeds configured sidecar tools such as [Vaultline](https://micwin.github.io/vaultline/) from `sidecars/*.conf`; set `JEFF_VAULTLINE_SOURCE=/path/to/vaultline` to override the default local source path. Build metadata is written to `work/sidecars/<name>/metadata.env` and feeds the downloads table.
+   At runtime, `jeff vl` compares the embedded backpack Vaultline with a local `vaultline` binary from `PATH` and uses the newer semantic version; pass `--use-backpack-version` or `--use-local-version` to force one side for debugging.
 3. Execute `smokey --dir tests.d` and ensure all numbered suites pass.
 4. Invoke `scripts/release.sh` to bump versions, cut tags/branches, and publish artifacts/pages. `[TODO] document release.sh flags and CI steps`
    The release workflow publishes `work/ghpages-site` to the `gh-pages` branch from a fresh publish clone; it must not switch branches inside the build workspace because ignored build directories can survive branch changes.

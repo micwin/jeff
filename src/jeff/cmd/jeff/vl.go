@@ -2,7 +2,6 @@ package main
 
 import (
 	"context"
-	"errors"
 	"fmt"
 	"io"
 	"strings"
@@ -14,9 +13,13 @@ import (
 
 func newVaultlineCmd() *cobra.Command {
 	cmd := &cobra.Command{
-		Use:                "vl",
-		Short:              "Run embedded Vaultline commands",
-		Long:               "Run the Vaultline CLI embedded in this Jeff binary.",
+		Use:   "vl",
+		Short: "Run embedded Vaultline commands",
+		Long: "Run Vaultline commands.\n\n" +
+			"By default Jeff compares the bundled backpack Vaultline with a local " +
+			"`vaultline` binary in PATH and runs the newer one. Use " +
+			"`--use-backpack-version` to force the bundled copy or " +
+			"`--use-local-version` to force PATH lookup.",
 		DisableFlagParsing: true,
 		SilenceUsage:       true,
 		Args:               cobra.ArbitraryArgs,
@@ -33,23 +36,27 @@ func newVaultlineCmd() *cobra.Command {
 }
 
 func runVaultline(runCtx context.Context, ctx *commandContext, args []string) error {
-	args, err := normalizeVaultlineArgs(ctx, args)
+	args, mode, err := normalizeVaultlineArgs(ctx, args)
+	if err != nil {
+		return err
+	}
+	runner, err := vaultlineRunnerFor(runCtx, mode)
 	if err != nil {
 		return err
 	}
 	if vaultlineRawPassthrough(args) {
-		return runVaultlineSidecar(runCtx, args, ctx)
+		return runVaultlineCommand(runCtx, args, ctx, runner)
 	}
 	args = defaultVaultlineSecretStore(args)
-	managedArgs, err := managedVaultlineArgs(runCtx, ctx, args)
+	managedArgs, err := managedVaultlineArgs(runCtx, ctx, runner, args)
 	if err != nil {
 		return err
 	}
-	return runVaultlineSidecar(runCtx, managedArgs, ctx)
+	return runVaultlineCommand(runCtx, managedArgs, ctx, runner)
 }
 
-func runVaultlineSidecar(runCtx context.Context, args []string, ctx *commandContext) error {
-	err := sidecars.Run(runCtx, "vaultline", args, sidecars.Stdio{
+func runVaultlineCommand(runCtx context.Context, args []string, ctx *commandContext, runner *vaultlineRunner) error {
+	err := runner.Run(runCtx, args, sidecars.Stdio{
 		Stdin:  ctx.stdin,
 		Stdout: ctx.stdout,
 		Stderr: ctx.stderr,
@@ -57,7 +64,7 @@ func runVaultlineSidecar(runCtx context.Context, args []string, ctx *commandCont
 	if err == nil {
 		return nil
 	}
-	if errors.Is(err, sidecars.ErrNotFound) {
+	if vaultlineRunnerNotFound(err) {
 		return fmt.Errorf("vaultline sidecar is not embedded in this Jeff build; run scripts/build.sh to build Jeff with sidecars")
 	}
 	return err
@@ -77,7 +84,11 @@ func completeVaultline(cmd *cobra.Command, args []string, toComplete string) ([]
 			store:  store,
 		}
 	}
-	args, err = normalizeVaultlineArgs(ctx, args)
+	args, mode, err := normalizeVaultlineArgs(ctx, args)
+	if err != nil {
+		return nil, cobra.ShellCompDirectiveNoFileComp
+	}
+	runner, err := vaultlineRunnerFor(cmd.Context(), mode)
 	if err != nil {
 		return nil, cobra.ShellCompDirectiveNoFileComp
 	}
@@ -87,11 +98,11 @@ func completeVaultline(cmd *cobra.Command, args []string, toComplete string) ([]
 			completeArgs = append(completeArgs, arg)
 		}
 	}
-	managedArgs, err := managedVaultlineArgs(cmd.Context(), ctx, completeArgs)
+	managedArgs, err := managedVaultlineArgs(cmd.Context(), ctx, runner, completeArgs)
 	if err != nil {
 		return nil, cobra.ShellCompDirectiveNoFileComp
 	}
-	out, err := sidecars.Output(cmd.Context(), "vaultline", managedArgs)
+	out, err := runner.Output(cmd.Context(), managedArgs)
 	if err != nil {
 		return nil, cobra.ShellCompDirectiveNoFileComp
 	}
@@ -118,32 +129,37 @@ func vaultlineRawPassthrough(args []string) bool {
 	}
 }
 
-func normalizeVaultlineArgs(ctx *commandContext, args []string) ([]string, error) {
+func normalizeVaultlineArgs(ctx *commandContext, args []string) ([]string, vaultlineUseMode, error) {
 	normalized := make([]string, 0, len(args))
+	mode := vaultlineUseAuto
 	for i := 0; i < len(args); i++ {
 		arg := args[i]
 		switch {
 		case arg == "--config":
 			if i+1 >= len(args) {
-				return nil, fmt.Errorf("--config requires a value")
+				return nil, mode, fmt.Errorf("--config requires a value")
 			}
 			store, err := cachedStore(args[i+1])
 			if err != nil {
-				return nil, err
+				return nil, mode, err
 			}
 			ctx.store = store
 			i++
 		case strings.HasPrefix(arg, "--config="):
 			store, err := cachedStore(strings.TrimPrefix(arg, "--config="))
 			if err != nil {
-				return nil, err
+				return nil, mode, err
 			}
 			ctx.store = store
+		case arg == "--use-backpack-version" || arg == "--use--backpack-version":
+			mode = vaultlineUseBackpack
+		case arg == "--use-local-version":
+			mode = vaultlineUseLocal
 		default:
 			normalized = append(normalized, arg)
 		}
 	}
-	return normalized, nil
+	return normalized, mode, nil
 }
 
 func defaultVaultlineSecretStore(args []string) []string {

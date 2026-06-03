@@ -1,0 +1,2 @@
+- feat: make `jeff vl` choose the newer of the bundled backpack Vaultline and a local `vaultline` binary, with `--use-backpack-version` and `--use-local-version` overrides.
+- chore: update the bundled Vaultline sidecar to the latest available release.
