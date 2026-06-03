@@ -1,0 +1,71 @@
+#!/usr/bin/env bash
+# Codex-resume stub for Jeff room routing tests.
+
+set -euo pipefail
+
+log_file=${CODEX_RESUME_STUB_LOG:?}
+
+case "${1:-}" in
+--show-policy)
+	case "${2:-}" in
+	bde | gov | governance)
+		printf 'alias: bde\n'
+		;;
+	bde-engine | engine | be)
+		printf 'alias: bde-engine\n'
+		;;
+	noalias)
+		printf 'policy output without canonical alias\n'
+		;;
+	*)
+		printf 'unknown alias: %s\n' "${2:-}" >&2
+		exit 2
+		;;
+	esac
+	;;
+--list-short-aliases)
+	printf 'gov -> bde\n'
+	printf 'governance -> bde\n'
+	printf 'engine -> bde-engine\n'
+	printf 'be -> bde-engine\n'
+	;;
+exec)
+	alias=${2:?}
+	shift 2
+	if [[ "${1:-}" != "--" ]]; then
+		printf 'missing prompt boundary\n' >&2
+		exit 2
+	fi
+	shift
+	prompt=$*
+	printf 'exec %s\n%s\n---\n' "$alias" "$prompt" >>"$log_file"
+	case "$alias" in
+	bde)
+		if grep -q "no comment" <<<"$prompt"; then
+			printf 'PASS\n'
+			exit 0
+		fi
+		printf 'governance sees %s\n' "$prompt"
+		;;
+	bde-engine)
+		if grep -q "break engine" <<<"$prompt"; then
+			printf 'engine refused request\n' >&2
+			exit 9
+		fi
+		if grep -q "no comment" <<<"$prompt"; then
+			printf 'PASS\n'
+			exit 0
+		fi
+		printf 'engine sees %s\n' "$prompt"
+		;;
+	*)
+		printf 'unexpected exec alias: %s\n' "$alias" >&2
+		exit 2
+		;;
+	esac
+	;;
+*)
+	printf 'unexpected codex-resume args: %s\n' "$*" >&2
+	exit 2
+	;;
+esac

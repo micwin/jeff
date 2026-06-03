@@ -21,10 +21,11 @@ Happy hacking!
 - `jeff menu` gives you a simple, nestable menu for frequently used shell shortcuts.
 - `jeff tmux` launches the overlay with a configurable status bar and lets you pop open the menu via `Ctrl-T` while pair-programming in your favorite TUI editor.
 - `jeff tmpl` lets you list, validate, and render reusable template packages (with shell completion for template names).
-- `jeff vl` runs the bundled [Vaultline](https://micwin.github.io/vaultline/) CLI without extracting a helper executable to disk.
+- `jeff vl` runs the newer of bundled or local [Vaultline](https://micwin.github.io/vaultline/), with switches to force either copy.
 - `jeff init` unpacks Jeff's embedded memory castle and persistent personal-agent defaults into the XDG data directory.
 - `jeff chat` opens the long-lived Jeff agent session for ongoing conversations.
 - `jeff execute` runs Bash-backed user commands stored under Jeff's data directory, with completion for command names.
+- `jeff room` coordinates file-backed specialist rooms and routes prefixed turns through configured `codex-resume` experts.
 - `jeff completion` installs command completions for bash, zsh, and fish.
 
 

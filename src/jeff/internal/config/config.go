@@ -160,6 +160,15 @@ func (s *Store) ReportsDir() (string, error) {
 	return filepath.Join(dataDir, "reports"), nil
 }
 
+// RoomsDir reports where Jeff keeps file-backed specialist rooms.
+func (s *Store) RoomsDir() (string, error) {
+	dataDir, err := s.DataDir()
+	if err != nil {
+		return "", err
+	}
+	return filepath.Join(dataDir, "rooms"), nil
+}
+
 // VaultlineDir reports where Jeff keeps its local Vaultline support files.
 func (s *Store) VaultlineDir() (string, error) {
 	agentDir, err := s.AgentDir()
