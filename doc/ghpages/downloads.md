@@ -7,6 +7,7 @@ Direct links to current and previous builds.
 
 | Version | Binary | Debian | [Vaultline](https://micwin.github.io/vaultline/)-Version | Notes |
 |---------|--------|--------|-------------------|-------|
+| v0.3.32 | [Binary](https://github.com/micwin/jeff/releases/download/v0.3.32/jeff) | [Debian](https://github.com/micwin/jeff/releases/download/v0.3.32/jeff_0.3.32_amd64.deb) | `951e7d4daeb5` | [Notes]({{ "/releases/v0.3.32.html" | relative_url }}) |
 | v0.3.31 | [Binary](https://github.com/micwin/jeff/releases/download/v0.3.31/jeff) | [Debian](https://github.com/micwin/jeff/releases/download/v0.3.31/jeff_0.3.31_amd64.deb) | `63a8963537cd` | [Notes]({{ "/releases/v0.3.31.html" | relative_url }}) |
 | v0.3.30 | [Binary](https://github.com/micwin/jeff/releases/download/v0.3.30/jeff) | [Debian](https://github.com/micwin/jeff/releases/download/v0.3.30/jeff_0.3.30_amd64.deb) | `63a8963537cd` | [Notes]({{ "/releases/v0.3.30.html" | relative_url }}) |
 | v0.3.29 | [Binary](https://github.com/micwin/jeff/releases/download/v0.3.29/jeff) | [Debian](https://github.com/micwin/jeff/releases/download/v0.3.29/jeff_0.3.29_amd64.deb) | `63a8963537cd` | [Notes]({{ "/releases/v0.3.29.html" | relative_url }}) |

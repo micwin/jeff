@@ -1,1 +1,0 @@
-- feat: extend `jeff memcastle path [query]` to resolve exact castle-relative directories and search directory path segments with `*` and `**` wildcards.

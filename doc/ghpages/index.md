@@ -38,6 +38,6 @@ Happy hacking!
 <!-- latest-release:start -->
 ## Latest Release
 
-- [Download Jeff v0.3.31](https://github.com/micwin/jeff/releases/tag/v0.3.31)
-- [Release notes]({{ "/releases/v0.3.31.html" | relative_url }})
+- [Download Jeff v0.3.32](https://github.com/micwin/jeff/releases/tag/v0.3.32)
+- [Release notes]({{ "/releases/v0.3.32.html" | relative_url }})
 <!-- latest-release:end -->
