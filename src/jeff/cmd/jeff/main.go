@@ -40,6 +40,7 @@ Commands:
   memcastle   Inspect Jeff's persistent memory castle (alias: mc)
   execute     Execute stored Jeff Bash commands
   room        Coordinate deterministic specialist rooms
+  specialists List and call registered specialists
   completion  Generate shell completions`, ver)
 
 	cmd := &cobra.Command{
@@ -73,6 +74,7 @@ Commands:
 		newMemcastleCmd(),
 		newExecuteCmd(),
 		newRoomCmd(),
+		newSpecialistsCmd(),
 		newCompletionCmd(cmd),
 		newVersionCmd(),
 	)

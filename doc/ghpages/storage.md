@@ -22,6 +22,8 @@ Jeff's personal-agent state lives below the durable user data directory:
 memcastle/   Persistent memory castle, system prompt, wings, rooms, and logbook.
 skills/      User skills and skill metadata. Secret values live in Vaultline.
 commands/    Bash-backed commands executed with `jeff execute <name>`.
+specialists/ Machine-readable specialist registry entries for `jeff specialists`.
+specialist-calls/ Logged specialist requests and responses grouped by UTC date.
 reports/     Generated daily, finance, API, and operational reports.
 ```
 
@@ -69,6 +71,13 @@ commands/
 ```
 
 `jeff execute <name>` runs in Bash, sources `commands/shared/*.sh`, sources `init.sh`, runs `run.sh`, and then sources `cleanup.sh` through an exit trap when present.
+
+Specialist registry entries are JSON files below `specialists/<alias>.json`.
+They contain non-secret transport metadata such as the alias, display name,
+description, transport, target, tags, and enabled state. `jeff specialists
+call <alias> -- <message>` wraps the request in Jeff's specialist prompt,
+dispatches it through the configured transport, and writes a durable call log
+below `specialist-calls/YYYY-MM-DD/`.
 
 ## Migrations
 

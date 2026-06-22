@@ -1,0 +1,38 @@
+#!/usr/bin/env bash
+# Fake codex-resume transport for Jeff specialist registry tests.
+
+set -euo pipefail
+
+log_file=${CODEX_RESUME_STUB_LOG:?}
+
+if [[ "${1:-}" != "exec" ]]; then
+	printf 'unexpected codex-resume args: %s\n' "$*" >&2
+	exit 2
+fi
+
+alias=${2:?}
+shift 2
+if [[ "${1:-}" != "--" ]]; then
+	printf 'missing prompt boundary\n' >&2
+	exit 2
+fi
+shift
+prompt=$*
+
+printf 'alias=%s\nJEFF_AGENT_ALIAS=%s\n%s\n---\n' "$alias" "${JEFF_AGENT_ALIAS:-}" "$prompt" >>"$log_file"
+
+case "$alias" in
+governor)
+	printf 'codex\n'
+	printf 'governor handled %s\n' "$prompt"
+	printf 'tokens used\n'
+	;;
+broken)
+	printf 'broken specialist failed\n' >&2
+	exit 9
+	;;
+*)
+	printf 'unexpected alias: %s\n' "$alias" >&2
+	exit 2
+	;;
+esac

@@ -26,6 +26,7 @@ Happy hacking!
 - `jeff chat` opens the long-lived Jeff agent session for ongoing conversations.
 - `jeff execute` runs Bash-backed user commands stored under Jeff's data directory, with completion for command names.
 - `jeff room` coordinates file-backed specialist rooms and routes prefixed turns through configured `codex-resume` experts.
+- `jeff specialists` lists and calls registered specialists through Jeff's generic specialist bridge.
 - `jeff completion` installs command completions for bash, zsh, and fish.
 
 

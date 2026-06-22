@@ -1,0 +1,12 @@
+{
+  "alias": "gov",
+  "display_name": "Governor",
+  "description": "Governance specialist",
+  "transport": "codex-resume",
+  "target": "governor",
+  "enabled": true,
+  "tags": [
+    "bde",
+    "governance"
+  ]
+}

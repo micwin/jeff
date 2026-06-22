@@ -1,0 +1,6 @@
+{
+  "alias": "disabled",
+  "description": "Disabled specialist",
+  "transport": "echo",
+  "enabled": false
+}

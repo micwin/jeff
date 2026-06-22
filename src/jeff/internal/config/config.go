@@ -169,6 +169,15 @@ func (s *Store) RoomsDir() (string, error) {
 	return filepath.Join(dataDir, "rooms"), nil
 }
 
+// SpecialistsDir reports where Jeff keeps machine-readable specialist registry entries.
+func (s *Store) SpecialistsDir() (string, error) {
+	dataDir, err := s.DataDir()
+	if err != nil {
+		return "", err
+	}
+	return filepath.Join(dataDir, "specialists"), nil
+}
+
 // VaultlineDir reports where Jeff keeps its local Vaultline support files.
 func (s *Store) VaultlineDir() (string, error) {
 	agentDir, err := s.AgentDir()

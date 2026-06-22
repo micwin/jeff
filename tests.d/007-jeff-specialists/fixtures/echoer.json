@@ -1,0 +1,5 @@
+{
+  "alias": "echoer",
+  "description": "Local deterministic echo specialist",
+  "transport": "echo"
+}
