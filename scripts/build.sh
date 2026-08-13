@@ -12,8 +12,10 @@ DO_COMPILE=1
 DO_DOCS=1
 DO_DEB=1
 DO_INSTALL=0
+DO_INSTALL_COMPLETION=0
 DO_CLEAN=0
 DEB_PACKAGE_PATH=""
+COMPLETION_SHELL="${SHELL:-}"
 
 if [ $# -gt 0 ]; then
 	DO_COMPILE=0
@@ -21,9 +23,9 @@ if [ $# -gt 0 ]; then
 	DO_DEB=0
 	while [ $# -gt 0 ]; do
 		case "$1" in
-            --clean)
-                DO_CLEAN=1
-                ;;
+			--clean)
+				DO_CLEAN=1
+				;;
 			--compile)
 				DO_COMPILE=1
 				;;
@@ -35,15 +37,30 @@ if [ $# -gt 0 ]; then
 				;;
 			--install)
 				DO_INSTALL=1
+				DO_INSTALL_COMPLETION=1
 				DO_DEB=1
 				DO_COMPILE=1
+				;;
+			--install-completion)
+				DO_INSTALL_COMPLETION=1
+				;;
+			--shell)
+				shift
+				if [ $# -eq 0 ]; then
+					echo "Missing value for --shell" >&2
+					exit 1
+				fi
+				COMPLETION_SHELL=$1
 				;;
 			-h|--help)
 				cat <<EOF
 Usage: scripts/build.sh [--compile] [--docs] [--deb] [--install]
+                        [--install-completion] [--shell SHELL]
 Without flags, all sections run (compile, docs placeholder, deb package).
 Providing any flag limits execution to the selected sections.
-Use --install to build and install the generated .deb (implies --deb).
+Use --install to build and install the generated .deb and shell completion.
+Use --install-completion to configure completion without building or installing.
+Use --shell to override SHELL for completion setup.
 Use --clean to remove previous build artifacts (can be combined with other flags).
 EOF
 				exit 0
@@ -66,6 +83,80 @@ need_cmd() {
 
 log() {
 	printf '%s\n' "$*"
+}
+
+completion_shell() {
+	basename "${COMPLETION_SHELL:-unknown}"
+}
+
+completion_rc_path() {
+	case "$(completion_shell)" in
+		bash)
+			if [ -f "$HOME/.bashrc" ] || [ ! -f "$HOME/.bash_profile" ]; then
+				printf '%s\n' "$HOME/.bashrc"
+			else
+				printf '%s\n' "$HOME/.bash_profile"
+			fi
+			;;
+		zsh)
+			printf '%s\n' "${ZDOTDIR:-$HOME}/.zshrc"
+			;;
+		fish)
+			printf '%s\n' "${XDG_CONFIG_HOME:-$HOME/.config}/fish/conf.d/jeff.fish"
+			;;
+		*)
+			return 1
+			;;
+	esac
+}
+
+completion_block() {
+	case "$(completion_shell)" in
+		bash)
+			cat <<'EOF'
+# >>> jeff completion >>>
+source <(jeff completion bash)
+# <<< jeff completion <<<
+EOF
+			;;
+		zsh)
+			cat <<'EOF'
+# >>> jeff completion >>>
+source <(jeff completion zsh)
+# <<< jeff completion <<<
+EOF
+			;;
+		fish)
+			cat <<'EOF'
+# >>> jeff completion >>>
+jeff completion fish | source
+# <<< jeff completion <<<
+EOF
+			;;
+		*)
+			return 1
+			;;
+	esac
+}
+
+install_completion() {
+	shell=$(completion_shell)
+	if ! rc_path=$(completion_rc_path); then
+		log "==> Completion unsupported shell=${shell:-unknown}"
+		return
+	fi
+	rc_dir=$(dirname "$rc_path")
+	mkdir -p "$rc_dir"
+	touch "$rc_path"
+	if grep -q "# >>> jeff completion >>>" "$rc_path"; then
+		log "==> Completion already configured shell=$shell path=$rc_path"
+		return
+	fi
+	{
+		printf '\n'
+		completion_block
+	} >>"$rc_path"
+	log "==> Completion configured shell=$shell path=$rc_path"
 }
 
 clean_artifacts() {
@@ -100,6 +191,11 @@ patch=${patch:-0}
 	echo "$new_version" >"$VERSION_FILE"
 	log "==> Version bumped to $new_version"
 }
+
+if [ "$DO_INSTALL_COMPLETION" -eq 1 ] && [ "$DO_COMPILE" -eq 0 ] && [ "$DO_DOCS" -eq 0 ] && [ "$DO_DEB" -eq 0 ]; then
+	install_completion
+	exit 0
+fi
 
 need_cmd go
 mkdir -p "$WORK_DIR/go-cache" "$WORK_DIR/go-tmp" "$DIST_DIR"
@@ -231,6 +327,10 @@ if [ "$DO_DEB" -eq 1 ]; then
 			exit 1
 		fi
 	fi
+fi
+
+if [ "$DO_INSTALL_COMPLETION" -eq 1 ]; then
+	install_completion
 fi
 
 log "Build complete. Artifacts available in $DIST_DIR"

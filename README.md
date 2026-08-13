@@ -26,6 +26,11 @@ Smokey directories follow `tests.d/NNN-feature-case`, where `NNN` is a zero-padd
 3. Use `scripts/build.sh` for local builds, `scripts/release.sh` for version/tag flows, and `scripts/clean.sh` to reset the workspace.
 4. Update `RUNBOOK.md` if you change how any of the scripts operate.
 
+`scripts/build.sh --install` also configures completion for the current Bash,
+Zsh, or Fish user. To configure it separately without building or incrementing
+the Jeff version, run `scripts/build.sh --install-completion`. Use
+`--shell /path/to/shell` when `$SHELL` does not identify the intended shell.
+
 ## Specialist Backup And Recovery
 
 Refresh Jeff's specialist continuity archive before changing Codex accounts,
