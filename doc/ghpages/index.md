@@ -27,6 +27,7 @@ Happy hacking!
 - `jeff execute` runs Bash-backed user commands stored under Jeff's data directory, with completion for command names.
 - `jeff room` coordinates file-backed specialist rooms and routes prefixed turns through configured `codex-resume` experts.
 - `jeff specialists` lists and calls registered specialists through Jeff's generic specialist bridge.
+- `jeff specialists archive` preserves specialist identities, searchable local transcripts, roles, and non-reproducible repository state for successor recovery.
 - `jeff completion` installs command completions for bash, zsh, and fish.
 
 
@@ -35,6 +36,7 @@ Happy hacking!
 - [Download overview]({{ "/downloads.html" | relative_url }})
 - [Sidecar build details]({{ "/sidecars.html" | relative_url }})
 - [Storage layout]({{ "/storage.html" | relative_url }})
+- [Specialist backup and recovery]({{ "/specialist-recovery.html" | relative_url }})
 
 <!-- latest-release:start -->
 ## Latest Release

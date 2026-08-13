@@ -1,6 +1,7 @@
 package main
 
 import (
+	"errors"
 	"fmt"
 	"os"
 
@@ -17,6 +18,10 @@ var (
 func main() {
 	rootCmd := newRootCommand()
 	if err := rootCmd.Execute(); err != nil {
+		var partial archivePartialError
+		if errors.As(err, &partial) {
+			os.Exit(archivePartialExitCode)
+		}
 		os.Exit(1)
 	}
 }

@@ -79,6 +79,51 @@ call <alias> -- <message>` wraps the request in Jeff's specialist prompt,
 dispatches it through the configured transport, and writes a durable call log
 below `specialist-calls/YYYY-MM-DD/`.
 
+## Specialist Continuity Archive
+
+`jeff specialists archive refresh` records specialist aliases, exact session
+ids, invocation policies, local Codex transcripts, and repository state below
+`memcastle/codex/specialist-archive/`. Add `--briefs` to request current role,
+knowledge, open-work, and restart summaries from enabled specialists.
+
+The archive separates tracked recovery metadata from private payloads:
+
+```text
+codex/specialist-archive/
+  registry.json          Specialist identities and policies.
+  repositories.json      Reproducible repository references and snapshots.
+  successor-prompt.md    Recovery instructions for a replacement Jeff agent.
+  status.json             Completeness and error report.
+  private/sessions/       Compressed local Codex JSONL transcripts.
+  private/repositories/   Flat snapshots of non-reproducible working trees.
+codex/specialists/<alias>/
+  index.md                Specialist identity and archive pointer.
+  role.md                 Human-curated role description.
+  current-state.md        Optional specialist continuity brief.
+  runtime.json            Machine-readable archived runtime record.
+```
+
+`private/` is ignored by the Memory Castle Git repository because transcripts
+and working trees may contain private or secret material. Portable and disaster
+recovery backups must include that ignored directory explicitly.
+
+Clean repositories whose exact commit exists on `origin` are stored only as a
+remote URL, branch, and commit hash. Dirty trees, repositories without a remote,
+and commits not present on the remote receive one deduplicated flat snapshot of
+tracked and untracked non-ignored files; `.git`, ignored build output, and Git
+history are not copied.
+
+Use `jeff specialists archive status` before relying on an archive,
+`jeff specialists archive search [--alias NAME] [--regex] QUERY` for offline
+transcript search, and `jeff specialists archive successor` to print the
+replacement-agent recovery prompt. Archived session ids remain identity
+records and must not be overwritten without explicit human approval.
+
+The archive preserves specialists, not a complete Jeff installation. Follow
+[Specialist Backup And Recovery](specialist-recovery.md) for Jeff installation,
+exact archive target paths, the Memory Castle codex-resume helper, repository
+restoration, and the account-boundary behavior of Codex sessions.
+
 ## Migrations
 
 Jeff records configuration migration state in `config.json` as `schema_version`.

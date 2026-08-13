@@ -44,6 +44,7 @@ func newSpecialistsCmd() *cobra.Command {
 		newSpecialistsListCmd(),
 		newSpecialistsShowCmd(),
 		newSpecialistsCallCmd(),
+		newSpecialistsArchiveCmd(),
 	)
 	return cmd
 }

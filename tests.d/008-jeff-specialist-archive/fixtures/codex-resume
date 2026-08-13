@@ -1,0 +1,40 @@
+#!/usr/bin/env bash
+# Test adapter: exposes deterministic specialist aliases and policies.
+
+set -euo pipefail
+
+if [[ ${1-} == "--list" ]]; then
+	printf 'castle\ndirty\ngov\ngov-copy\n'
+	exit 0
+fi
+
+if [[ ${1-} == "--show-policy" ]]; then
+	alias_name=${2-}
+	case "$alias_name" in
+	castle)
+		printf 'alias: castle\ndescription: Memory Castle tool specialist\nsession_key: ai:codex.context.gov.id\nsandbox: workspace-write\napproval: never\ncd: %s/jeff/memcastle/codex/tools\nenabled: true\nexec_enabled: false\n' \
+			"$XDG_DATA_HOME"
+		;;
+	gov|gov-copy)
+		exec_enabled=false
+		[[ "$alias_name" == gov-copy ]] && exec_enabled=true
+		printf 'alias: %s\ndescription: Governance specialist\nsession_key: ai:codex.context.gov.id\nsandbox: workspace-write\napproval: never\ncd: %s\nenabled: true\nexec_enabled: %s\n' \
+			"$alias_name" "$ARCHIVE_CLEAN_REPO" "$exec_enabled"
+		;;
+	dirty)
+		printf 'alias: dirty\ndescription: Dirty repository specialist\nsession_key: ai:codex.context.dirty.id\nsandbox: workspace-write\napproval: never\ncd: %s\nenabled: true\n' \
+			"$ARCHIVE_DIRTY_REPO"
+		;;
+	*) exit 2 ;;
+	esac
+	exit 0
+fi
+
+if [[ ${1-} == "exec" ]]; then
+	printf '%s\n' "${2-}" >>"$ARCHIVE_BRIEF_LOG"
+	printf 'Role and continuity brief for %s.\n' "${2-}"
+	exit 0
+fi
+
+printf 'unexpected codex-resume arguments: %s\n' "$*" >&2
+exit 2

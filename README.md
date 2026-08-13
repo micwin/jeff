@@ -26,6 +26,27 @@ Smokey directories follow `tests.d/NNN-feature-case`, where `NNN` is a zero-padd
 3. Use `scripts/build.sh` for local builds, `scripts/release.sh` for version/tag flows, and `scripts/clean.sh` to reset the workspace.
 4. Update `RUNBOOK.md` if you change how any of the scripts operate.
 
+## Specialist Backup And Recovery
+
+Refresh Jeff's specialist continuity archive before changing Codex accounts,
+moving machines, or taking a disaster-recovery backup:
+
+```bash
+jeff specialists archive refresh --briefs
+jeff specialists archive status
+```
+
+The archive preserves specialist identities, policies, searchable transcripts,
+continuity briefs, and repository recovery data. It is stored inside the Memory
+Castle, including a private Git-ignored payload that must be copied explicitly.
+The archive is not by itself a complete Jeff installation backup and cannot
+make a session resumable by a different Codex account.
+
+See [Specialist Backup And Recovery](doc/ghpages/specialist-recovery.md) for
+Jeff installation, exact archive paths, repository restoration, the bundled
+codex-resume helper, same-account session recovery, and successor
+reconstruction under a different account.
+
 ## Branching & Releases
 - Default branch is `develop`. Do not create `master` or `main` branches.
 - Feature work lives on branches named `feature/<ticket-id>-<feature-slug>` (e.g., `feature/123-ingest-batching`).

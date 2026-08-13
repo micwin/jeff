@@ -42,3 +42,17 @@ Operational procedures for Jeff. Update this file whenever the release process, 
 
 ## 6. Contact & Escalation
 `[TODO] list on-call owners, communication channels, and escalation timeframes]`
+
+## 7. Specialist Disaster Recovery
+
+Before a machine move, Codex account change, or destructive maintenance, run
+`jeff specialists archive refresh --briefs` and require a clean
+`jeff specialists archive status`. Preserve the Memory Castle specialist rooms,
+archive metadata, and Git-ignored private transcript and repository payload in
+protected storage. A Memory Castle Git push excludes that private payload and
+is not sufficient.
+
+Use the [Specialist Backup And Recovery](doc/ghpages/specialist-recovery.md)
+procedure for reconstruction and verification. Do not refresh a partially
+reconstructed archive, replace persistent session ids, or extract repository
+snapshots over unrelated files.
