@@ -13,6 +13,7 @@ FIXTURES_DIR="$SMOKEY_TEST_DIR/fixtures"
 CODEX_HOME="$SMOKEY_STATE_DIR/codex-home"
 CODEX_STUB="$SMOKEY_STATE_DIR/codex-stub.sh"
 CODEX_STUB_ARGS_FILE="$SMOKEY_STATE_DIR/codex-agent-args.log"
+CODEX_RESUME_STUB="$SMOKEY_STATE_DIR/codex-resume"
 AGENT_BOOTSTRAP_OUT="$SMOKEY_STATE_DIR/jeff-agent-bootstrap.out"
 CODEX_FORCE_OUT="$SMOKEY_STATE_DIR/jeff-force.out"
 
@@ -33,6 +34,9 @@ export CODEX_HOME
 export CODEX_STUB_ARGS_FILE
 cp "$FIXTURES_DIR/codex_stub.sh" "$CODEX_STUB"
 chmod +x "$CODEX_STUB"
+printf '#!/usr/bin/env bash\nset -euo pipefail\nprintf "%%s\\n" "$*" >"$SMOKEY_STATE_DIR/codex-resume-args.log"\nif [[ "${CODEX_RESUME_FAIL:-}" == "1" ]]; then\n\tprintf "socket: operation not permitted\\n" >&2\n\texit 1\nfi\nprintf "JEFF_COORDINATOR_STUB_OK\\n"\n' >"$CODEX_RESUME_STUB"
+chmod +x "$CODEX_RESUME_STUB"
+export PATH="$SMOKEY_STATE_DIR:$PATH"
 
 # Init deploys the embedded memory castle and creates data subdirectories.
 init_out=$("$JEFF_BIN" --config "$CONFIG_DIR" init)
@@ -176,6 +180,29 @@ remember_out=$("$JEFF_BIN" --config "$CONFIG_DIR" agent remember "finance meetin
 assert_contains "$remember_out" "Remembered in" "agent remember reports log path"
 grep -R "finance meeting summary" "$DATA_DIR/jeff/memcastle/logbook" >/dev/null
 echo "ok: agent remember writes logbook"
+
+# Agent instructions provide a stable entrypoint for specialists after compact.
+instructions_out=$("$JEFF_BIN" --config "$CONFIG_DIR" agent instructions)
+assert_contains "$instructions_out" "$DATA_DIR/jeff/memcastle/codex/index.md" "agent instructions points at codex index"
+assert_contains "$instructions_out" "jeff agent contact" "agent instructions names contact command"
+assert_contains "$instructions_out" "$DATA_DIR/jeff/memcastle/gatehouse/specialists" "agent instructions names fallback room"
+echo "ok: agent instructions explains Jeff contact"
+
+# Agent contact calls the narrow coordinator alias through codex-resume.
+contact_out=$("$JEFF_BIN" --config "$CONFIG_DIR" agent contact "Goal: smoke. Need: ok.")
+assert_contains "$contact_out" "JEFF_COORDINATOR_STUB_OK" "agent contact prints coordinator output"
+grep -q "exec jeff-coordinator -- Goal: smoke. Need: ok." "$SMOKEY_STATE_DIR/codex-resume-args.log"
+echo "ok: agent contact uses jeff-coordinator"
+
+# If direct contact is blocked, Jeff writes a dated gatehouse handoff.
+if CODEX_RESUME_FAIL=1 "$JEFF_BIN" --config "$CONFIG_DIR" agent contact "Goal: fallback." >"$SMOKEY_STATE_DIR/contact-fallback.out" 2>&1; then
+	echo "FAIL: agent contact succeeded despite failing coordinator" >&2
+	exit 1
+fi
+assert_contains "$(cat "$SMOKEY_STATE_DIR/contact-fallback.out")" "wrote handoff:" "agent contact reports fallback handoff"
+grep -R "Goal: fallback." "$DATA_DIR/jeff/memcastle/gatehouse/specialists" >/dev/null
+grep -R "socket: operation not permitted" "$DATA_DIR/jeff/memcastle/gatehouse/specialists" >/dev/null
+echo "ok: agent contact writes fallback handoff"
 
 # Execute runs shared, init, run, and cleanup scripts in a Bash subshell.
 mkdir -p "$COMMANDS_DIR/shared" "$COMMANDS_DIR/hello"
