@@ -2,7 +2,7 @@
   "alias": "gov",
   "display_name": "Governor",
   "description": "Governance specialist",
-  "transport": "codex-resume",
+  "transport": "codex-ctl",
   "target": "governor",
   "enabled": true,
   "tags": [

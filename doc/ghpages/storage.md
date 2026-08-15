@@ -121,7 +121,7 @@ records and must not be overwritten without explicit human approval.
 
 The archive preserves specialists, not a complete Jeff installation. Follow
 [Specialist Backup And Recovery](specialist-recovery.md) for Jeff installation,
-exact archive target paths, the Memory Castle codex-resume helper, repository
+exact archive target paths, the Memory Castle codex-ctl helper, repository
 restoration, and the account-boundary behavior of Codex sessions.
 
 ## Migrations

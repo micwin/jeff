@@ -10,7 +10,7 @@ CONFIG_DIR="$SMOKEY_STATE_DIR/jeff-specialists-config"
 DATA_DIR="$SMOKEY_STATE_DIR/jeff-specialists-data"
 BIN_DIR="$SMOKEY_STATE_DIR/bin"
 REGISTRY_DIR="$DATA_DIR/jeff/specialists"
-CODEX_RESUME_STUB_LOG="$SMOKEY_STATE_DIR/codex-resume.log"
+CODEX_CTL_STUB_LOG="$SMOKEY_STATE_DIR/codex-ctl.log"
 
 assert_contains() {
 	local haystack=$1
@@ -37,10 +37,10 @@ assert_fails_contains() {
 
 export XDG_DATA_HOME="$DATA_DIR"
 export XDG_CACHE_HOME="$SMOKEY_STATE_DIR/jeff-specialists-cache"
-export CODEX_RESUME_STUB_LOG
+export CODEX_CTL_STUB_LOG
 mkdir -p "$BIN_DIR" "$REGISTRY_DIR"
-cp "$SMOKEY_TEST_DIR/fixtures/codex-resume" "$BIN_DIR/codex-resume"
-chmod +x "$BIN_DIR/codex-resume"
+cp "$SMOKEY_TEST_DIR/fixtures/codex-ctl" "$BIN_DIR/codex-ctl"
+chmod +x "$BIN_DIR/codex-ctl"
 export PATH="$BIN_DIR:$PATH"
 
 # Registry files are machine-readable state; fixture copies contain no secrets.
@@ -49,23 +49,23 @@ cp "$SMOKEY_TEST_DIR"/fixtures/*.json "$REGISTRY_DIR/"
 # Listing, showing, and shell completion expose registered specialists.
 list_out=$("$JEFF_BIN" --config "$CONFIG_DIR" specialists list)
 assert_contains "$list_out" $'disabled\techo\tdisabled' "specialists list shows disabled state"
-assert_contains "$list_out" $'gov\tcodex-resume\tenabled\tGovernance specialist' "specialists list shows codex-resume specialist"
+assert_contains "$list_out" $'gov\tcodex-ctl\tenabled\tGovernance specialist' "specialists list shows codex-ctl specialist"
 show_out=$("$JEFF_BIN" --config "$CONFIG_DIR" specialists show gov)
 assert_contains "$show_out" '"target": "governor"' "specialists show emits registry JSON"
 completion_out=$("$JEFF_BIN" --config "$CONFIG_DIR" __complete specialists show g 2>/dev/null)
 assert_contains "$completion_out" "gov" "specialist completion includes alias"
 
-# Calling a codex-resume specialist wraps the request and sets JEFF_AGENT_ALIAS.
-: >"$CODEX_RESUME_STUB_LOG"
+# Calling a codex-ctl specialist wraps the request and sets JEFF_AGENT_ALIAS.
+: >"$CODEX_CTL_STUB_LOG"
 call_out=$("$JEFF_BIN" --config "$CONFIG_DIR" specialists call gov -- "check status")
 assert_contains "$call_out" "governor handled" "specialists call prints cleaned transport response"
-grep -q "alias=governor" "$CODEX_RESUME_STUB_LOG"
-grep -q "JEFF_AGENT_ALIAS=gov" "$CODEX_RESUME_STUB_LOG"
-grep -q "Specialist alias: gov" "$CODEX_RESUME_STUB_LOG"
-grep -q "check status" "$CODEX_RESUME_STUB_LOG"
+grep -q "alias=governor" "$CODEX_CTL_STUB_LOG"
+grep -q "JEFF_AGENT_ALIAS=gov" "$CODEX_CTL_STUB_LOG"
+grep -q "Specialist alias: gov" "$CODEX_CTL_STUB_LOG"
+grep -q "check status" "$CODEX_CTL_STUB_LOG"
 echo "ok: specialists call wraps prompt and exports alias"
 
-# File-backed requests and the transport-neutral echo adapter work without codex-resume.
+# File-backed requests and the transport-neutral echo adapter work without codex-ctl.
 file_out=$("$JEFF_BIN" --config "$CONFIG_DIR" specialists call echoer --file "$SMOKEY_TEST_DIR/request.md")
 assert_contains "$file_out" "echo specialist echoer" "echo transport handles file requests"
 assert_contains "$file_out" "file-backed specialist request" "file request text reaches specialist"

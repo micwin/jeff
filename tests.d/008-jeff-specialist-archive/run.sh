@@ -14,11 +14,11 @@ REMOTE_DIR="$SMOKEY_STATE_DIR/remote.git"
 CLEAN_REPO="$SMOKEY_STATE_DIR/clean-repo"
 DIRTY_REPO="$SMOKEY_STATE_DIR/dirty-repo"
 
-# Test-local tools emulate codex-resume and Vaultline without touching personal services.
+# Test-local tools emulate codex-ctl and Vaultline without touching personal services.
 mkdir -p "$BIN_DIR" "$CODEX_DIR/sessions/2026/01/01" "$CONFIG_DIR" "$DATA_DIR/jeff/memcastle/codex/tools"
-cp "$SMOKEY_TEST_DIR/fixtures/codex-resume" "$BIN_DIR/codex-resume"
+cp "$SMOKEY_TEST_DIR/fixtures/codex-ctl" "$BIN_DIR/codex-ctl"
 cp "$SMOKEY_TEST_DIR/fixtures/vaultline" "$BIN_DIR/vaultline"
-chmod +x "$BIN_DIR/codex-resume" "$BIN_DIR/vaultline"
+chmod +x "$BIN_DIR/codex-ctl" "$BIN_DIR/vaultline"
 export PATH="$BIN_DIR:$PATH"
 export XDG_CONFIG_HOME="$SMOKEY_STATE_DIR/xdg-config"
 export XDG_DATA_HOME="$DATA_DIR"

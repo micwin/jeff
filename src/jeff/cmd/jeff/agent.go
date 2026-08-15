@@ -180,7 +180,7 @@ func agentContactPrompt(stdinReader io.Reader, args []string) (string, error) {
 }
 
 func runJeffCoordinator(prompt string) (string, error) {
-	command := exec.Command("codex-resume", "exec", "jeff-coordinator", "--", prompt)
+	command := exec.Command("codex-ctl", "exec", "jeff-coordinator", "--", prompt)
 	var stdout bytes.Buffer
 	var stderr bytes.Buffer
 	command.Stdout = &stdout

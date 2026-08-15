@@ -3,12 +3,12 @@
 
 set -euo pipefail
 
-if [[ ${1-} == "--list" ]]; then
+if [[ ${1-} == "list" ]]; then
 	printf 'castle\ndirty\ngov\ngov-copy\n'
 	exit 0
 fi
 
-if [[ ${1-} == "--show-policy" ]]; then
+if [[ ${1-} == "show-policy" ]]; then
 	alias_name=${2-}
 	case "$alias_name" in
 	castle)
@@ -36,5 +36,5 @@ if [[ ${1-} == "exec" ]]; then
 	exit 0
 fi
 
-printf 'unexpected codex-resume arguments: %s\n' "$*" >&2
+printf 'unexpected codex-ctl arguments: %s\n' "$*" >&2
 exit 2

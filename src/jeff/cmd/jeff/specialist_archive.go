@@ -66,9 +66,9 @@ type archiveStatus struct {
 }
 
 type archiveRefreshOptions struct {
-	Briefs       bool
-	CodexHome    string
-	ResumeConfig string
+	Briefs        bool
+	CodexHome     string
+	SessionConfig string
 }
 
 func newSpecialistsArchiveCmd() *cobra.Command {
@@ -106,9 +106,9 @@ func newSpecialistsArchiveRefreshCmd() *cobra.Command {
 	}
 	cmd.Flags().BoolVar(&options.Briefs, "briefs", false, "Ask enabled specialists for current continuity briefs")
 	cmd.Flags().StringVar(&options.CodexHome, "codex-home", "", "Override Codex home (defaults to CODEX_HOME or ~/.codex)")
-	cmd.Flags().StringVar(&options.ResumeConfig, "resume-config", "", "Override codex-resume session config")
+	cmd.Flags().StringVar(&options.SessionConfig, "session-config", "", "Override codex-ctl session config")
 	_ = cmd.RegisterFlagCompletionFunc("codex-home", completeDirectories)
-	_ = cmd.RegisterFlagCompletionFunc("resume-config", completeFiles)
+	_ = cmd.RegisterFlagCompletionFunc("session-config", completeFiles)
 	return cmd
 }
 
@@ -238,7 +238,7 @@ func refreshSpecialistArchive(ctx *commandContext, options archiveRefreshOptions
 		return archiveStatus{}, err
 	}
 
-	aliases, err := codexResumeAliases(options.ResumeConfig)
+	aliases, err := codexCtlAliases(options.SessionConfig)
 	if err != nil {
 		return archiveStatus{}, err
 	}
@@ -247,7 +247,7 @@ func refreshSpecialistArchive(ctx *commandContext, options archiveRefreshOptions
 		return archiveStatus{}, err
 	}
 
-	registry := archiveRegistry{GeneratedAt: time.Now().Format(time.RFC3339), ShortAliases: configuredShortAliases(options.ResumeConfig)}
+	registry := archiveRegistry{GeneratedAt: time.Now().Format(time.RFC3339), ShortAliases: configuredShortAliases(options.SessionConfig)}
 	status := archiveStatus{GeneratedAt: registry.GeneratedAt}
 	memoryCastleRoot := filepath.Dir(filepath.Dir(root))
 	if memoryStatus, statusErr := gitOutput(memoryCastleRoot, "status", "--porcelain=v1", "--untracked-files=normal"); statusErr == nil {
@@ -257,7 +257,7 @@ func refreshSpecialistArchive(ctx *commandContext, options archiveRefreshOptions
 	sessions := map[string]string{}
 	for _, alias := range aliases {
 		record := archiveSpecialistRecord{Alias: alias, Enabled: true, Policy: map[string]any{}}
-		policyText, policyErr := codexResumePolicy(alias, options.ResumeConfig)
+		policyText, policyErr := codexCtlPolicy(alias, options.SessionConfig)
 		if policyErr != nil {
 			record.Error = policyErr.Error()
 			status.Errors = append(status.Errors, alias+": "+record.Error)
@@ -370,53 +370,53 @@ func resolveCodexHome(override string) (string, error) {
 	return filepath.Join(home, ".codex"), nil
 }
 
-func archiveCodexResumeArgs(config string, args ...string) []string {
+func archiveCodexCtlArgs(config string, args ...string) []string {
 	if config == "" {
 		return args
 	}
 	return append([]string{"--config", config}, args...)
 }
 
-func codexResumeAliases(config string) ([]string, error) {
+func codexCtlAliases(config string) ([]string, error) {
 	if configured := configuredAliasNames(config); len(configured) > 0 {
 		return configured, nil
 	}
-	out, err := exec.Command("codex-resume", archiveCodexResumeArgs(config, "--list")...).CombinedOutput()
+	out, err := exec.Command("codex-ctl", archiveCodexCtlArgs(config, "list")...).CombinedOutput()
 	if err != nil {
-		return nil, fmt.Errorf("list codex-resume aliases: %w: %s", err, strings.TrimSpace(string(out)))
+		return nil, fmt.Errorf("list codex-ctl aliases: %w: %s", err, strings.TrimSpace(string(out)))
 	}
 	aliases := strings.Fields(string(out))
 	sort.Strings(aliases)
 	return aliases, nil
 }
 
-func codexResumePolicy(alias, config string) (string, error) {
-	out, err := exec.Command("codex-resume", archiveCodexResumeArgs(config, "--show-policy", alias)...).CombinedOutput()
+func codexCtlPolicy(alias, config string) (string, error) {
+	out, err := exec.Command("codex-ctl", archiveCodexCtlArgs(config, "show-policy", alias)...).CombinedOutput()
 	if err == nil {
 		return string(out), nil
 	}
 	if policy := configuredAliasPolicy(config, alias); policy != "" {
 		return policy, nil
 	}
-	return "", fmt.Errorf("show codex-resume policy: %w: %s", err, strings.TrimSpace(string(out)))
+	return "", fmt.Errorf("show codex-ctl policy: %w: %s", err, strings.TrimSpace(string(out)))
 }
 
-func resumeConfigPath(config string) string {
+func sessionConfigPath(config string) string {
 	if config != "" {
 		return config
 	}
 	if root := os.Getenv("XDG_CONFIG_HOME"); root != "" {
-		return filepath.Join(root, "codex-resume", "sessions.toml")
+		return filepath.Join(root, "codex-ctl", "sessions.toml")
 	}
 	home, err := os.UserHomeDir()
 	if err != nil {
 		return ""
 	}
-	return filepath.Join(home, ".config", "codex-resume", "sessions.toml")
+	return filepath.Join(home, ".config", "codex-ctl", "sessions.toml")
 }
 
 func configuredAliasNames(config string) []string {
-	data, err := os.ReadFile(resumeConfigPath(config))
+	data, err := os.ReadFile(sessionConfigPath(config))
 	if err != nil {
 		return nil
 	}
@@ -431,7 +431,7 @@ func configuredAliasNames(config string) []string {
 }
 
 func configuredShortAliases(config string) map[string]string {
-	data, err := os.ReadFile(resumeConfigPath(config))
+	data, err := os.ReadFile(sessionConfigPath(config))
 	if err != nil {
 		return nil
 	}
@@ -455,7 +455,7 @@ func configuredShortAliases(config string) map[string]string {
 }
 
 func configuredAliasPolicy(config, alias string) string {
-	data, err := os.ReadFile(resumeConfigPath(config))
+	data, err := os.ReadFile(sessionConfigPath(config))
 	if err != nil {
 		return ""
 	}
@@ -768,7 +768,7 @@ You are rebuilding Jeff's specialist team from its persistent Memory Castle.
 4. If replacement sessions are required, present the old and proposed new ids and obtain explicit human approval before changing any Vaultline binding.
 5. Clone remote-reproducible repositories at the recorded commit. Restore only repositories with a ` + "`snapshot`" + ` field from the Git-excluded private archive.
 6. Search archived transcripts with ` + "`jeff specialists archive search`" + ` only when role files and current-state briefs are insufficient.
-7. Validate the rebuilt registry with ` + "`codex-resume --list`" + ` and bounded smoke calls before declaring recovery complete.
+7. Validate the rebuilt registry with ` + "`codex-ctl list`" + ` and bounded smoke calls before declaring recovery complete.
 `,
 		"private/.gitignore": "*\n!.gitignore\n",
 	}
@@ -904,7 +904,7 @@ func refreshContinuityBriefs(root string, specialists []archiveSpecialistRecord)
 			defer workers.Done()
 			for item := range jobs {
 				prompt := "Goal: create a concise continuity brief for a future replacement agent.\nNeed: exact role, durable knowledge locations, current work, open risks, and restart instructions.\nRules: English; no secrets or secret values; do not change files; high semantic density."
-				command := exec.Command("codex-resume", "exec", item.alias, "--", prompt)
+				command := exec.Command("codex-ctl", "exec", item.alias, "--", prompt)
 				var stdout strings.Builder
 				var stderr strings.Builder
 				command.Stdout = &stdout
@@ -917,7 +917,7 @@ func refreshContinuityBriefs(root string, specialists []archiveSpecialistRecord)
 					errorsChannel <- item.alias + " brief: " + message
 					continue
 				}
-				brief := cleanCodexResumeOutput(stdout.String())
+				brief := cleanCodexCtlOutput(stdout.String())
 				for _, alias := range item.aliases {
 					path := filepath.Join(filepath.Dir(root), "specialists", alias, "current-state.md")
 					if err := os.MkdirAll(filepath.Dir(path), 0o700); err != nil {

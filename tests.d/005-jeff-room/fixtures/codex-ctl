@@ -1,12 +1,12 @@
 #!/usr/bin/env bash
-# Codex-resume stub for Jeff room routing tests.
+# codex-ctl stub for Jeff room routing tests.
 
 set -euo pipefail
 
-log_file=${CODEX_RESUME_STUB_LOG:?}
+log_file=${CODEX_CTL_STUB_LOG:?}
 
 case "${1:-}" in
---show-policy)
+show-policy)
 	case "${2:-}" in
 	bde | gov | governance)
 		printf 'alias: bde\n'
@@ -23,7 +23,7 @@ case "${1:-}" in
 		;;
 	esac
 	;;
---list-short-aliases)
+list-short-aliases)
 	printf 'gov -> bde\n'
 	printf 'governance -> bde\n'
 	printf 'engine -> bde-engine\n'
@@ -65,7 +65,7 @@ exec)
 	esac
 	;;
 *)
-	printf 'unexpected codex-resume args: %s\n' "$*" >&2
+	printf 'unexpected codex-ctl args: %s\n' "$*" >&2
 	exit 2
 	;;
 esac

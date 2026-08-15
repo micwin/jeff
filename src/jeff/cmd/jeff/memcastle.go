@@ -412,7 +412,7 @@ Question:
 Memory castle sources:
 
 %s`, strings.TrimSpace(question), document)
-	args := append(codexYoloArgs(), codexResumeArgs(sessionID, prompt)...)
+	args := append(codexYoloArgs(), codexSessionArgs(sessionID, prompt)...)
 	cmd := exec.Command(codexBinary, args...)
 	cmd.Stdout = ctx.stdout
 	cmd.Stderr = ctx.stderr
@@ -458,7 +458,7 @@ Scope:
 Current memory castle snapshot:
 
 %s`, agentDir, document)
-	args := append(codexYoloArgs(), codexResumeArgs(sessionID, prompt)...)
+	args := append(codexYoloArgs(), codexSessionArgs(sessionID, prompt)...)
 	cmd := exec.Command(codexBinary, args...)
 	cmd.Stdout = ctx.stdout
 	cmd.Stderr = ctx.stderr

@@ -90,7 +90,7 @@ func chatResumeArgs(ctx *commandContext, sessionID string) ([]string, bool, erro
 		return nil, false, err
 	}
 	if injected {
-		return codexResumeArgs(sessionID), false, nil
+		return codexSessionArgs(sessionID), false, nil
 	}
 	prompt, err := agent.SystemPrompt(ctx.store)
 	if err != nil {
@@ -98,7 +98,7 @@ func chatResumeArgs(ctx *commandContext, sessionID string) ([]string, bool, erro
 	}
 	prompt = strings.TrimSpace(prompt)
 	if prompt == "" {
-		return codexResumeArgs(sessionID), false, nil
+		return codexSessionArgs(sessionID), false, nil
 	}
-	return codexResumeArgs(sessionID, prompt), true, nil
+	return codexSessionArgs(sessionID, prompt), true, nil
 }

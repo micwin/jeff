@@ -1,6 +1,6 @@
 // room.go coordinates file-backed specialist rooms. It owns room config,
-// transcripts, deterministic speaker routing, and codex-resume calls; it does
-// not manage specialist session policies themselves.
+// transcripts, deterministic speaker routing, and session calls; it does not
+// manage specialist session policies themselves.
 package main
 
 import (
@@ -65,7 +65,7 @@ func newRoomNewCmd() *cobra.Command {
 			return createRoom(ctx, args[0], experts)
 		},
 	}
-	cmd.Flags().StringVar(&expertsCSV, "experts", "", "Comma-separated codex-resume aliases")
+	cmd.Flags().StringVar(&expertsCSV, "experts", "", "Comma-separated codex-ctl aliases")
 	_ = cmd.MarkFlagRequired("experts")
 	return cmd
 }
@@ -138,7 +138,7 @@ func createRoom(ctx *commandContext, name string, requestedExperts []string) err
 	experts := make([]roomExpert, 0, len(requestedExperts))
 	seen := make(map[string]struct{})
 	for _, requested := range requestedExperts {
-		alias, err := resolveCodexResumeAlias(requested)
+		alias, err := resolveCodexCtlAlias(requested)
 		if err != nil {
 			return err
 		}
@@ -178,7 +178,7 @@ func runRoomTurn(ctx *commandContext, room roomConfig, message string) error {
 	if strings.TrimSpace(message) == "" {
 		return errors.New("message must not be empty")
 	}
-	aliasMap, err := loadCodexResumeShortAliases()
+	aliasMap, err := loadCodexCtlShortAliases()
 	if err != nil {
 		return err
 	}
@@ -271,7 +271,7 @@ func roomExpertAliases(room roomConfig) []string {
 
 func askRoomExpert(alias, roomName, message string, previous []roomTurnAnswer) (string, error) {
 	prompt := buildRoomPrompt(alias, roomName, message, previous)
-	cmd := exec.Command("codex-resume", "exec", alias, "--", prompt)
+	cmd := exec.Command("codex-ctl", "exec", alias, "--", prompt)
 	var stdout bytes.Buffer
 	var stderr bytes.Buffer
 	cmd.Stdout = &stdout
@@ -279,11 +279,11 @@ func askRoomExpert(alias, roomName, message string, previous []roomTurnAnswer) (
 	if err := cmd.Run(); err != nil {
 		msg := strings.TrimSpace(stderr.String())
 		if msg != "" {
-			return "", fmt.Errorf("codex-resume exec %s failed: %w: %s", alias, err, msg)
+			return "", fmt.Errorf("codex-ctl exec %s failed: %w: %s", alias, err, msg)
 		}
-		return "", fmt.Errorf("codex-resume exec %s failed: %w", alias, err)
+		return "", fmt.Errorf("codex-ctl exec %s failed: %w", alias, err)
 	}
-	return cleanCodexResumeOutput(stdout.String()), nil
+	return cleanCodexCtlOutput(stdout.String()), nil
 }
 
 func buildRoomPrompt(alias, roomName, message string, previous []roomTurnAnswer) string {
@@ -315,7 +315,7 @@ func isPassAnswer(output string) bool {
 	return len(lines) == 1 && strings.EqualFold(lines[0], "PASS")
 }
 
-func cleanCodexResumeOutput(raw string) string {
+func cleanCodexCtlOutput(raw string) string {
 	lines := strings.Split(strings.ReplaceAll(raw, "\r\n", "\n"), "\n")
 	start := -1
 	for i, line := range lines {
@@ -349,8 +349,8 @@ func dedupeTrailingRepeatedLine(raw string) string {
 	return raw
 }
 
-func resolveCodexResumeAlias(alias string) (string, error) {
-	cmd := exec.Command("codex-resume", "--show-policy", alias)
+func resolveCodexCtlAlias(alias string) (string, error) {
+	cmd := exec.Command("codex-ctl", "show-policy", alias)
 	var stdout bytes.Buffer
 	var stderr bytes.Buffer
 	cmd.Stdout = &stdout
@@ -358,9 +358,9 @@ func resolveCodexResumeAlias(alias string) (string, error) {
 	if err := cmd.Run(); err != nil {
 		msg := strings.TrimSpace(stderr.String())
 		if msg != "" {
-			return "", fmt.Errorf("resolve codex-resume alias %q: %w: %s", alias, err, msg)
+			return "", fmt.Errorf("resolve codex-ctl alias %q: %w: %s", alias, err, msg)
 		}
-		return "", fmt.Errorf("resolve codex-resume alias %q: %w", alias, err)
+		return "", fmt.Errorf("resolve codex-ctl alias %q: %w", alias, err)
 	}
 	for _, line := range strings.Split(stdout.String(), "\n") {
 		if value, ok := strings.CutPrefix(line, "alias: "); ok {
@@ -370,11 +370,11 @@ func resolveCodexResumeAlias(alias string) (string, error) {
 			}
 		}
 	}
-	return "", fmt.Errorf("resolve codex-resume alias %q: policy output has no alias field", alias)
+	return "", fmt.Errorf("resolve codex-ctl alias %q: policy output has no alias field", alias)
 }
 
-func loadCodexResumeShortAliases() (map[string]string, error) {
-	cmd := exec.Command("codex-resume", "--list-short-aliases")
+func loadCodexCtlShortAliases() (map[string]string, error) {
+	cmd := exec.Command("codex-ctl", "list-short-aliases")
 	var stdout bytes.Buffer
 	var stderr bytes.Buffer
 	cmd.Stdout = &stdout
@@ -382,9 +382,9 @@ func loadCodexResumeShortAliases() (map[string]string, error) {
 	if err := cmd.Run(); err != nil {
 		msg := strings.TrimSpace(stderr.String())
 		if msg != "" {
-			return nil, fmt.Errorf("list codex-resume short aliases: %w: %s", err, msg)
+			return nil, fmt.Errorf("list codex-ctl short aliases: %w: %s", err, msg)
 		}
-		return nil, fmt.Errorf("list codex-resume short aliases: %w", err)
+		return nil, fmt.Errorf("list codex-ctl short aliases: %w", err)
 	}
 	aliases := make(map[string]string)
 	for _, line := range strings.Split(stdout.String(), "\n") {

@@ -103,7 +103,7 @@ func runAsk(ctx *commandContext, opts askOptions) error {
 		"--skip-git-repo-check",
 		"--output-last-message", tmpPath,
 	)
-	cmdArgs = append(cmdArgs, codexResumeArgs(sessionID, dirPrefixedQuestion)...)
+	cmdArgs = append(cmdArgs, codexSessionArgs(sessionID, dirPrefixedQuestion)...)
 
 	var stdoutBuf, stderrBuf strings.Builder
 	cmd := exec.CommandContext(ctxWithTimeout, codexBinary, cmdArgs...)

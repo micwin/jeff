@@ -1,6 +1,6 @@
 // specialists.go exposes Jeff's generic specialist registry and call bridge.
-// It keeps specialist identity data outside codex-resume so future local LLM
-// transports can use the same Jeff-facing command surface.
+// It keeps specialist identity data outside the transport implementation so
+// future local LLM transports can use the same Jeff-facing command surface.
 package main
 
 import (
@@ -19,8 +19,8 @@ import (
 )
 
 const (
-	specialistTransportCodexResume = "codex-resume"
-	specialistTransportEcho        = "echo"
+	specialistTransportCodexCtl = "codex-ctl"
+	specialistTransportEcho     = "echo"
 )
 
 type specialistConfig struct {
@@ -152,12 +152,12 @@ func callSpecialistByAlias(ctx *commandContext, alias, message string) error {
 func callSpecialist(ctx *commandContext, specialist specialistConfig, message string) (string, error) {
 	transport := specialist.Transport
 	if transport == "" {
-		transport = specialistTransportCodexResume
+		transport = specialistTransportCodexCtl
 	}
 	prompt := buildSpecialistPrompt(specialist, message)
 	switch transport {
-	case specialistTransportCodexResume:
-		return callCodexResumeSpecialist(specialist, prompt)
+	case specialistTransportCodexCtl:
+		return callCodexCtlSpecialist(specialist, prompt)
 	case specialistTransportEcho:
 		return fmt.Sprintf("echo specialist %s\n%s", specialist.Alias, prompt), nil
 	default:
@@ -165,12 +165,12 @@ func callSpecialist(ctx *commandContext, specialist specialistConfig, message st
 	}
 }
 
-func callCodexResumeSpecialist(specialist specialistConfig, prompt string) (string, error) {
+func callCodexCtlSpecialist(specialist specialistConfig, prompt string) (string, error) {
 	target := specialist.Target
 	if target == "" {
 		target = specialist.Alias
 	}
-	cmd := exec.Command("codex-resume", "exec", target, "--", prompt)
+	cmd := exec.Command("codex-ctl", "exec", target, "--", prompt)
 	if specialist.CWD != "" {
 		cmd.Dir = specialist.CWD
 	}
@@ -182,11 +182,11 @@ func callCodexResumeSpecialist(specialist specialistConfig, prompt string) (stri
 	if err := cmd.Run(); err != nil {
 		msg := strings.TrimSpace(stderr.String())
 		if msg != "" {
-			return "", fmt.Errorf("codex-resume exec %s failed: %w: %s", target, err, msg)
+			return "", fmt.Errorf("codex-ctl exec %s failed: %w: %s", target, err, msg)
 		}
-		return "", fmt.Errorf("codex-resume exec %s failed: %w", target, err)
+		return "", fmt.Errorf("codex-ctl exec %s failed: %w", target, err)
 	}
-	return cleanCodexResumeOutput(stdout.String()), nil
+	return cleanCodexCtlOutput(stdout.String()), nil
 }
 
 func buildSpecialistPrompt(specialist specialistConfig, message string) string {
@@ -268,7 +268,7 @@ func loadSpecialistFile(path string) (specialistConfig, error) {
 		return specialistConfig{}, fmt.Errorf("specialist %s has no alias", path)
 	}
 	if specialist.Transport == "" {
-		specialist.Transport = specialistTransportCodexResume
+		specialist.Transport = specialistTransportCodexCtl
 	}
 	return specialist, nil
 }

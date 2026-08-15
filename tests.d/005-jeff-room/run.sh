@@ -1,5 +1,5 @@
 #!/usr/bin/env bash
-# Smokey test: validates deterministic Jeff room routing through codex-resume.
+# Smokey test: validates deterministic Jeff room routing through codex-ctl.
 
 set -euo pipefail
 
@@ -10,7 +10,7 @@ CONFIG_DIR="$SMOKEY_STATE_DIR/jeff-room-config"
 DATA_DIR="$SMOKEY_STATE_DIR/jeff-room-data"
 BIN_DIR="$SMOKEY_STATE_DIR/bin"
 ROOM_DIR="$DATA_DIR/jeff/rooms/bde-dev"
-CODEX_RESUME_STUB_LOG="$SMOKEY_STATE_DIR/codex-resume.log"
+CODEX_CTL_STUB_LOG="$SMOKEY_STATE_DIR/codex-ctl.log"
 
 assert_contains() {
 	local haystack=$1
@@ -37,10 +37,10 @@ assert_fails_contains() {
 
 export XDG_DATA_HOME="$DATA_DIR"
 export XDG_CACHE_HOME="$SMOKEY_STATE_DIR/jeff-room-cache"
-export CODEX_RESUME_STUB_LOG
+export CODEX_CTL_STUB_LOG
 mkdir -p "$BIN_DIR"
-cp "$SMOKEY_TEST_DIR/fixtures/codex-resume" "$BIN_DIR/codex-resume"
-chmod +x "$BIN_DIR/codex-resume"
+cp "$SMOKEY_TEST_DIR/fixtures/codex-ctl" "$BIN_DIR/codex-ctl"
+chmod +x "$BIN_DIR/codex-ctl"
 export PATH="$BIN_DIR:$PATH"
 
 # Invalid room setup fails before writing room state.
@@ -50,12 +50,12 @@ assert_fails_contains "room rejects empty expert lists" "at least one expert is 
 	"$JEFF_BIN" --config "$CONFIG_DIR" room new empty --experts ",,,"
 assert_fails_contains "room rejects unknown experts" "unknown alias: missing" \
 	"$JEFF_BIN" --config "$CONFIG_DIR" room new bad-expert --experts missing
-assert_fails_contains "room rejects malformed codex-resume policy output" "policy output has no alias field" \
+assert_fails_contains "room rejects malformed codex-ctl policy output" "policy output has no alias field" \
 	"$JEFF_BIN" --config "$CONFIG_DIR" room new malformed --experts noalias
 test ! -d "$DATA_DIR/jeff/rooms/bad-expert"
 echo "ok: room setup failures leave no partial room"
 
-# Creating a room resolves short aliases to canonical codex-resume aliases.
+# Creating a room resolves short aliases to canonical codex-ctl aliases.
 create_out=$("$JEFF_BIN" --config "$CONFIG_DIR" room new bde-dev --experts gov,engine)
 assert_contains "$create_out" 'Room "bde-dev" created with 2 expert(s).' "room new reports experts"
 grep -q '"alias": "bde"' "$ROOM_DIR/room.json"
@@ -79,69 +79,69 @@ completion_out=$("$JEFF_BIN" --config "$CONFIG_DIR" __complete room enter b 2>/d
 assert_contains "$completion_out" "bde-dev" "room enter completion includes room"
 
 # A message without selector uses the configured room order.
-: >"$CODEX_RESUME_STUB_LOG"
+: >"$CODEX_CTL_STUB_LOG"
 turn_out=$("$JEFF_BIN" --config "$CONFIG_DIR" room enter bde-dev "check invoices")
 assert_contains "$turn_out" "bde:" "default turn prints first expert"
 assert_contains "$turn_out" "bde-engine:" "default turn prints second expert"
-mapfile -t calls < <(grep '^exec ' "$CODEX_RESUME_STUB_LOG")
+mapfile -t calls < <(grep '^exec ' "$CODEX_CTL_STUB_LOG")
 [[ "${calls[0]}" == "exec bde" ]]
 [[ "${calls[1]}" == "exec bde-engine" ]]
-grep -q "Previous room answers:" "$CODEX_RESUME_STUB_LOG"
+grep -q "Previous room answers:" "$CODEX_CTL_STUB_LOG"
 echo "ok: room default turn routes through all experts in order"
 
 # A short alias selector rotates that expert to the front and strips the prefix.
-: >"$CODEX_RESUME_STUB_LOG"
+: >"$CODEX_CTL_STUB_LOG"
 selector_out=$("$JEFF_BIN" --config "$CONFIG_DIR" room enter bde-dev "engine: inspect storage")
 assert_contains "$selector_out" "bde-engine:" "selector turn prints selected expert"
-mapfile -t selected_calls < <(grep '^exec ' "$CODEX_RESUME_STUB_LOG")
+mapfile -t selected_calls < <(grep '^exec ' "$CODEX_CTL_STUB_LOG")
 [[ "${selected_calls[0]}" == "exec bde-engine" ]]
 [[ "${selected_calls[1]}" == "exec bde" ]]
-if grep -q "User message:.*engine:" "$CODEX_RESUME_STUB_LOG"; then
+if grep -q "User message:.*engine:" "$CODEX_CTL_STUB_LOG"; then
 	echo "FAIL: room selector leaked into specialist prompt" >&2
-	cat "$CODEX_RESUME_STUB_LOG" >&2
+	cat "$CODEX_CTL_STUB_LOG" >&2
 	exit 1
 fi
-grep -q "inspect storage" "$CODEX_RESUME_STUB_LOG"
+grep -q "inspect storage" "$CODEX_CTL_STUB_LOG"
 echo "ok: room selector rotates first speaker and strips prefix"
 
 # A canonical selector works too, while an unknown selector stays part of the message.
-: >"$CODEX_RESUME_STUB_LOG"
+: >"$CODEX_CTL_STUB_LOG"
 canonical_out=$("$JEFF_BIN" --config "$CONFIG_DIR" room enter bde-dev "bde-engine: inspect canonical")
 assert_contains "$canonical_out" "bde-engine:" "canonical selector prints selected expert"
-mapfile -t canonical_calls < <(grep '^exec ' "$CODEX_RESUME_STUB_LOG")
+mapfile -t canonical_calls < <(grep '^exec ' "$CODEX_CTL_STUB_LOG")
 [[ "${canonical_calls[0]}" == "exec bde-engine" ]]
-if grep -q "User message:.*bde-engine:" "$CODEX_RESUME_STUB_LOG"; then
+if grep -q "User message:.*bde-engine:" "$CODEX_CTL_STUB_LOG"; then
 	echo "FAIL: canonical selector leaked into specialist prompt" >&2
-	cat "$CODEX_RESUME_STUB_LOG" >&2
+	cat "$CODEX_CTL_STUB_LOG" >&2
 	exit 1
 fi
 echo "ok: room canonical selector rotates first speaker"
 
-: >"$CODEX_RESUME_STUB_LOG"
+: >"$CODEX_CTL_STUB_LOG"
 unknown_selector_out=$("$JEFF_BIN" --config "$CONFIG_DIR" room enter bde-dev "random: keep prefix")
 assert_contains "$unknown_selector_out" "bde:" "unknown selector uses default first expert"
-mapfile -t unknown_calls < <(grep '^exec ' "$CODEX_RESUME_STUB_LOG")
+mapfile -t unknown_calls < <(grep '^exec ' "$CODEX_CTL_STUB_LOG")
 [[ "${unknown_calls[0]}" == "exec bde" ]]
-grep -q "random: keep prefix" "$CODEX_RESUME_STUB_LOG"
+grep -q "random: keep prefix" "$CODEX_CTL_STUB_LOG"
 echo "ok: room ignores unknown selectors without dropping text"
 
 # Empty and failing turns fail clearly and do not continue silently.
 assert_fails_contains "room rejects empty message after selector stripping" "message must not be empty" \
 	"$JEFF_BIN" --config "$CONFIG_DIR" room enter bde-dev "engine:"
-: >"$CODEX_RESUME_STUB_LOG"
-assert_fails_contains "room reports codex-resume exec failure" "codex-resume exec bde-engine failed" \
+: >"$CODEX_CTL_STUB_LOG"
+assert_fails_contains "room reports codex-ctl exec failure" "codex-ctl exec bde-engine failed" \
 	"$JEFF_BIN" --config "$CONFIG_DIR" room enter bde-dev "engine: break engine"
-mapfile -t failed_calls < <(grep '^exec ' "$CODEX_RESUME_STUB_LOG")
+mapfile -t failed_calls < <(grep '^exec ' "$CODEX_CTL_STUB_LOG")
 [[ "${failed_calls[0]}" == "exec bde-engine" ]]
 if [[ ${#failed_calls[@]} -ne 1 ]]; then
 	echo "FAIL: room continued after failing first expert" >&2
-	cat "$CODEX_RESUME_STUB_LOG" >&2
+	cat "$CODEX_CTL_STUB_LOG" >&2
 	exit 1
 fi
 echo "ok: room stops on failing expert"
 
 # PASS answers are recorded but not printed to the user.
-: >"$CODEX_RESUME_STUB_LOG"
+: >"$CODEX_CTL_STUB_LOG"
 pass_out=$("$JEFF_BIN" --config "$CONFIG_DIR" room enter bde-dev "no comment")
 if [[ -n "$pass_out" ]]; then
 	echo "FAIL: PASS answers were printed" >&2

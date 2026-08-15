@@ -1,12 +1,12 @@
 #!/usr/bin/env bash
-# Fake codex-resume transport for Jeff specialist registry tests.
+# Fake codex-ctl transport for Jeff specialist registry tests.
 
 set -euo pipefail
 
-log_file=${CODEX_RESUME_STUB_LOG:?}
+log_file=${CODEX_CTL_STUB_LOG:?}
 
 if [[ "${1:-}" != "exec" ]]; then
-	printf 'unexpected codex-resume args: %s\n' "$*" >&2
+	printf 'unexpected codex-ctl args: %s\n' "$*" >&2
 	exit 2
 fi
 

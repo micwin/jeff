@@ -16,11 +16,11 @@ files, so transport it only through suitably protected storage.
 - A copy of the Memory Castle that includes the Git-ignored private specialist
   archive payload.
 
-No separate codex-resume installation is required. Its implementation is kept
+No separate codex-ctl installation is required. Its implementation is kept
 inside the Memory Castle at:
 
 ```text
-$(jeff memcastle path)/codex/tools/codex-resume/codex-resume
+$(jeff memcastle path)/codex/tools/codex-ctl/codex-ctl
 ```
 
 ## Refresh The Archive
@@ -34,7 +34,7 @@ jeff specialists archive status
 ```
 
 `refresh` records every configured specialist alias, exact historical session
-id, codex-resume policy, local transcript, continuity brief, and relevant
+id, codex-ctl policy, local transcript, continuity brief, and relevant
 repository state. `status` must report no errors and no missing transcripts. A
 partial refresh exits with status 2 while preserving successful results.
 
@@ -72,25 +72,25 @@ $(jeff memcastle path)/castle.md
 $(jeff memcastle path)/codex/specialist-archive/registry.json
 $(jeff memcastle path)/codex/specialist-archive/private/sessions/
 $(jeff memcastle path)/codex/specialists/
-$(jeff memcastle path)/codex/tools/codex-resume/codex-resume
+$(jeff memcastle path)/codex/tools/codex-ctl/codex-ctl
 ```
 
 Do not add another `memcastle/` directory level. For example, if
 `jeff memcastle path` prints `~/.local/share/jeff/memcastle`, `castle.md` must be
 directly below that directory.
 
-Make codex-resume executable and expose it through the user's `PATH`. A typical
+Make codex-ctl executable and expose it through the user's `PATH`. A typical
 per-user link is:
 
 ```bash
-chmod +x "$(jeff memcastle path)/codex/tools/codex-resume/codex-resume"
+chmod +x "$(jeff memcastle path)/codex/tools/codex-ctl/codex-ctl"
 mkdir -p "$HOME/.local/bin"
-ln -sfn "$(jeff memcastle path)/codex/tools/codex-resume/codex-resume" \
-  "$HOME/.local/bin/codex-resume"
+ln -sfn "$(jeff memcastle path)/codex/tools/codex-ctl/codex-ctl" \
+  "$HOME/.local/bin/codex-ctl"
 ```
 
-The active codex-resume configuration normally lives at
-`~/.config/codex-resume/sessions.toml`; it is not the source of truth for this
+The active codex-ctl configuration normally lives at
+`~/.config/codex-ctl/sessions.toml`; it is not the source of truth for this
 recovery. The archive's `registry.json` contains each alias, session key,
 session id, working directory, added directories, sandbox, approval mode,
 delegation policy, and short aliases required to reconstruct that file.
@@ -127,7 +127,7 @@ jeff specialists archive successor
 Give the printed successor prompt to the new primary Jeff session. It directs
 the agent to the archived registry, specialist rooms, repository records, and
 offline transcript search. The successor reconstructs
-`~/.config/codex-resume/sessions.toml`, restores the required session bindings,
+`~/.config/codex-ctl/sessions.toml`, restores the required session bindings,
 and checks each specialist without silently replacing historical identities.
 
 When the same Codex account is still in use and the historical session is
@@ -135,8 +135,8 @@ available, preserve its archived id and resume it. Test each reconstructed
 alias with:
 
 ```bash
-codex-resume --show-policy <alias>
-codex-resume <alias>
+codex-ctl show-policy <alias>
+codex-ctl open <alias>
 ```
 
 A different Codex account may not be allowed to resume those historical
@@ -151,7 +151,7 @@ remain archived as identity records.
 jeff specialists archive status
 jeff specialists list
 jeff specialists archive search --alias <alias> '<known phrase>'
-codex-resume --show-policy <alias>
+codex-ctl show-policy <alias>
 ```
 
 Confirm that the archive reports no errors or missing transcripts, expected

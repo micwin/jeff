@@ -49,7 +49,7 @@ make a session resumable by a different Codex account.
 
 See [Specialist Backup And Recovery](doc/ghpages/specialist-recovery.md) for
 Jeff installation, exact archive paths, repository restoration, the bundled
-codex-resume helper, same-account session recovery, and successor
+codex-ctl helper, same-account session recovery, and successor
 reconstruction under a different account.
 
 ## Branching & Releases

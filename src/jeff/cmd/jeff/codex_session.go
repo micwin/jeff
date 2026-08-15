@@ -24,7 +24,7 @@ func configuredCodexSession(cfg *config.Config) string {
 	return cfg.LastSession
 }
 
-func codexResumeArgs(sessionID string, prompt ...string) []string {
+func codexSessionArgs(sessionID string, prompt ...string) []string {
 	args := []string{"resume", sessionID}
 	return append(args, prompt...)
 }
